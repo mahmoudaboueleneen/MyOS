@@ -1,9 +1,6 @@
 package main;
 
-import main.elements.Interpreter;
-import main.elements.Memory;
-import main.elements.Mutex;
-import main.elements.Scheduler;
+import main.elements.*;
 
 public class MyOS {
     private static Mutex userInputMutex;
@@ -12,6 +9,7 @@ public class MyOS {
     private static Interpreter interpreter;
     private static Scheduler scheduler;
     private static Memory memory;
+    private static Kernel kernel;
 
     public static Mutex getUserInputMutex() {return userInputMutex;}
     public static Mutex getUserOutputMutex() {return userOutputMutex;}
@@ -27,6 +25,11 @@ public class MyOS {
         interpreter = new Interpreter();
         scheduler = new Scheduler();
         memory = new Memory();
+        kernel = new Kernel();
+    }
+
+    public void runProgram(String programFilePath){
+        kernel.createNewProcess(programFilePath);
     }
 
 }

@@ -9,12 +9,12 @@ public class ProcessControlBlock {
         private int lowerMemoryBoundary;
         private int upperMemoryBoundary;
 
-        public ProcessControlBlock(){
+        public ProcessControlBlock(int lowerMemoryBoundary, int upperMemoryBoundary){
             this.processID = MyOS.getScheduler().getNextProcessID();
             this.processState = ProcessState.NEW;
             this.programCounter = 0;
-
-
+            this.lowerMemoryBoundary = lowerMemoryBoundary;
+            this.upperMemoryBoundary = upperMemoryBoundary;
         }
 
         public int getProcessID() {return processID;}

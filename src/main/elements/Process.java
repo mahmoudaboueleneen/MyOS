@@ -2,10 +2,13 @@ package main.elements;
 
 public class Process {
     private ProcessControlBlock processControlBlock;
-    // private ArrayList<> variables;
-    // private File code;
+    private Object[] variables;
+    private String[] instructions;
 
-    public Process(){
+    public Process(int lowerMemoryBoundary, int upperMemoryBoundary, int linesOfCode){
+        this.processControlBlock = new ProcessControlBlock(lowerMemoryBoundary, upperMemoryBoundary);
+        this.variables = new Object[3];
+        this.instructions = new String[linesOfCode];
 
     }
 
