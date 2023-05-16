@@ -4,22 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f2a8d5c1-8ad1-4564-b8f7-74740431c4f6" name="Changes" comment="Start creation of OS project">
-      <change afterPath="$PROJECT_DIR$/src/main/MyOS.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/elements/Interpreter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/elements/Memory.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/elements/Mutex.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/elements/Process.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/elements/ProcessControlBlock.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/elements/ProcessState.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/elements/Scheduler.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/program_files/Program_1.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/program_files/Program_2.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/program_files/Program_3.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/Test.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Interpreter.java" beforeDir="false" />
-    </list>
+    <list default="true" id="f2a8d5c1-8ad1-4564-b8f7-74740431c4f6" name="Changes" comment="Start creation of OS project" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -86,7 +71,14 @@
       <option name="project" value="LOCAL" />
       <updated>1684205806733</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Start creation of OS project">
+      <created>1684225952178</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1684225952178</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
