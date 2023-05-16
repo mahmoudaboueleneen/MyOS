@@ -12,12 +12,14 @@ public class Scheduler {
     private Queue<Process> readyQueue;
     private Queue<Process> blockedQueue;
     private int nextProcessID;
+    private int roundRobinTimeSlice;
 
     public Scheduler(){
         this.processes = new ArrayList<Process>();
         this.readyQueue = new ArrayDeque<Process>();
         this.blockedQueue = new ArrayDeque<Process>();
         this.nextProcessID = 0;
+        // roundRobinTimeSlice
     }
 
     public ArrayList<Process> getProcesses() {return processes;}
@@ -29,5 +31,7 @@ public class Scheduler {
         nextProcessID++;
         return temp;
     }
+
+
 
 }
