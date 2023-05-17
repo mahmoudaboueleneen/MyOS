@@ -37,7 +37,6 @@ public class Kernel {
         int lowerMemoryBound = 0;
         int upperMemoryBound = 0;
         boolean[] occupied = MyOS.getMemory().getOccupied();
-
         for(int i = 0; i < occupied.length; i++) {
         // If we find any space in the memory, get the starting address of this space
             if(!occupied[i]){
@@ -49,23 +48,30 @@ public class Kernel {
         // Calculate the memory size of the process  and see if it can fit
         if(lowerMemoryBound + processMemorySize > 40)
             canFit = false;
-
         upperMemoryBound = lowerMemoryBound + processMemorySize - 1;
-
         Object[] result = new Object[4];
         result[0] = canFit;
         result[1] = lowerMemoryBound;
         result[2] = upperMemoryBound;
         result[3] = processMemorySize;
-
         return result;
     }
 
     public void createNewProcess(String programFilePath){
         if( (boolean) canFitInMemory(programFilePath)[0] ){
-            MyOS.getScheduler().getProcesses().add( new Process( (Integer) canFitInMemory(programFilePath)[1],
-                        (Integer) canFitInMemory(programFilePath)[2], (Integer) canFitInMemory(programFilePath)[3]) );
-            System.out.println("Process created");
+            // Create process, arrive at scheduler & add its burst time to scheduler
+            Process p = new Process( (Integer) canFitInMemory(programFilePath)[1], (Integer) canFitInMemory(programFilePath)[2], (Integer) canFitInMemory(programFilePath)[3]);
+            MyOS.getScheduler().addArrivedProcess( p );
+            MyOS.getScheduler().addBurstTime( (Integer) canFitInMemory(programFilePath)[3] );
+            System.out.println("Process arrived at scheduler");
+
+            // Now add the process to memory
+            MyOS.getScheduler().getInMemoryProcesses().add(p);
+
+
+            System.out.println("Process added to memory");
+
+            System.out.println("Process created successfully \n");
         }
         else{
             // retrieve a not running process from the Scheduler's processes ArrrayList,

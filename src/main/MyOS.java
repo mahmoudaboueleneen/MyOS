@@ -18,12 +18,12 @@ public class MyOS {
     public static Scheduler getScheduler() {return scheduler;}
     public static Memory getMemory() {return memory;}
 
-    public MyOS(){
+    public MyOS(int roundRobinTimeSlice){
         userInputMutex = new Mutex();
         userOutputMutex = new Mutex();
         fileMutex = new Mutex();
         interpreter = new Interpreter();
-        scheduler = new Scheduler();
+        scheduler = new Scheduler(roundRobinTimeSlice);
         memory = new Memory();
         kernel = new Kernel();
     }

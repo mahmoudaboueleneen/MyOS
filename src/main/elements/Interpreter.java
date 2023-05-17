@@ -11,7 +11,7 @@ public class Interpreter {
     // Read file and count lines of code to determine memory size to reserve for process
     // Called by the Kernel when checking if process can fit in memory
     public int countFileLinesOfCode(String filePath){
-        System.out.println("Counting lines of code...");
+        // System.out.println("Counting lines of code...");
         int linesOfCode = 0;
 
         try {
