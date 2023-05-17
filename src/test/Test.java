@@ -25,8 +25,9 @@ public class Test {
                         i++;
                     }
                     if(i == arrival.length) {
-                        System.out.println("All processes successfully created!");
-                        break;
+                        System.out.println("All processes successfully created! \n");
+                        System.out.println(MyOS.getMemory());
+                        return;  // Here we finally exit from the thread
                     }
                     count++;
                 }
@@ -95,17 +96,7 @@ public class Test {
         thread.start();
 
         //System.out.println("Count after 5 seconds: " + counter.getCount());
-
-
-
-
-
-
-
-
-
         //System.currentTimeMillis()
-
     }
 
 }

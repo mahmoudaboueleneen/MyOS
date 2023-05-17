@@ -66,11 +66,15 @@ public class Kernel {
             System.out.println("Process arrived at scheduler");
 
             // Now add the process to memory
-            MyOS.getScheduler().getInMemoryProcesses().add(p);
-
-
+            // MyOS.getScheduler().getInMemoryProcesses().add(p);
+            // p.getPCB().setLowerMemoryBoundary( (Integer) canFitInMemory(programFilePath)[1] );
+            // p.getPCB().setUpperMemoryBoundary( (Integer) canFitInMemory(programFilePath)[2] );
+            // use new Memory methods to add occupy memory[] and occupied[] in Memory class
+            // should migrate the setting lower and upper boundaries & adding to inMemoryProcesses to memory methods
             System.out.println("Process added to memory");
 
+            // Finalize process creation ???
+            //
             System.out.println("Process created successfully \n");
         }
         else{
