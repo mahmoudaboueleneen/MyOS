@@ -78,7 +78,7 @@ public class Kernel {
             // retrieve a not running process from the Scheduler's processes ArrrayList,
             // move this process to disk (serialize)
             // remove this process from memory (set occupied to false)
-            // reorganizeMemory();
+            // compactMemory();
             // check for space again
             // keep removing and reorganizing until space is found
             // move our new process to memory

@@ -18,13 +18,12 @@ public class Memory {
     public MemoryWord[] getMemory() {
         return memory;
     }
-
     public boolean[] getOccupied() {
         return occupied;
     }
 
     @Override
-    /* Prints memory in human-readable format, should be used every clock cycle. */
+    // Prints memory in human-readable format, should be used every clock cycle
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("MEMORY:\n");

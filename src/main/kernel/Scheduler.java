@@ -7,6 +7,7 @@ import main.exceptions.InvalidInstructionException;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Queue;
 
 public class Scheduler {
@@ -51,15 +52,26 @@ public class Scheduler {
         nextProcessID++;
         return temp;
     }
+
     public void addArrivedProcess(Process p){
         // Add process to arrived & change its state from NEW to READY
         this.arrivedProcesses.add(p);
         p.getPCB().setProcessState(ProcessState.READY);
     }
+
     public void addBurstTime(int linesOfCode){
         // Add burst time corresponding to arrived process
         this.burstTimes.add(linesOfCode);
     }
+
+//    public void printQueues(){
+//        System.out.println("Ready Queue: {");
+//        Iterator<Process> iterator = readyQueue.iterator();
+//        while (iterator.hasNext()) {
+//            int processID = iterator.next().getPCB().getProcessID();
+//            System.out.println(processID + " ");
+//        }
+//    }
 
     public void executeRoundRobin() {
 
@@ -88,7 +100,7 @@ public class Scheduler {
                 throw new RuntimeException(e);
             }
 
-            // Increment PCB (We increment after executing to make sure that the instruction was executed successfully, so we can move on to the next)
+            // Increment PC (We increment after executing to make sure that the instruction was executed successfully, so we can move on to the next)
             currentRunningProcess.getPCB().setProgramCounter( currentRunningProcess.getPCB().getProgramCounter()+1 );
 
         }
