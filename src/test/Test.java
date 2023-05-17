@@ -69,7 +69,7 @@ public class Test {
         for(int i = 0; i < 3; i++)
             arrival[i] = (int) (inp.nextInt());
 
-        System.out.println("Starting timer..");
+        System.out.println("Initializing System Timer.. \n");
 
         // Warm up Java VM first.
         // Runs should be enough to run for 2-10 seconds.

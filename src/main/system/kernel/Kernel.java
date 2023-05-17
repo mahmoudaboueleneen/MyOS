@@ -1,18 +1,12 @@
-package main.elements;
+package main.system.kernel;
 
 import main.MyOS;
+import main.system.elements.Mutex;
+import main.system.elements.Process;
 
 public class Kernel {
 
     public Kernel(){}
-
-    public void serialize(){
-
-    }
-
-    public void deserialize(){
-
-    }
 
     public void reorganizeMemory(){
 
@@ -57,20 +51,23 @@ public class Kernel {
         return result;
     }
 
-    public void createNewProcess(String programFilePath){
+    public void createNewProcess(String programFilePath) {
         if( (boolean) canFitInMemory(programFilePath)[0] ){
             // Create process, arrive at scheduler & add its burst time to scheduler
-            Process p = new Process( (Integer) canFitInMemory(programFilePath)[1], (Integer) canFitInMemory(programFilePath)[2], (Integer) canFitInMemory(programFilePath)[3]);
+            Process p = new Process( (Integer) canFitInMemory(programFilePath)[1],
+                                     (Integer) canFitInMemory(programFilePath)[2],
+                                     (Integer) canFitInMemory(programFilePath)[3],
+                                      MyOS.getInterpreter().getInstructionsFromFile(programFilePath)
+                                    );
             MyOS.getScheduler().addArrivedProcess( p );
             MyOS.getScheduler().addBurstTime( (Integer) canFitInMemory(programFilePath)[3] );
             System.out.println("Process arrived at scheduler");
 
-            // Now add the process to memory
-            // MyOS.getScheduler().getInMemoryProcesses().add(p);
-            // p.getPCB().setLowerMemoryBoundary( (Integer) canFitInMemory(programFilePath)[1] );
-            // p.getPCB().setUpperMemoryBoundary( (Integer) canFitInMemory(programFilePath)[2] );
-            // use new Memory methods to add occupy memory[] and occupied[] in Memory class
-            // should migrate the setting lower and upper boundaries & adding to inMemoryProcesses to memory methods
+            // Now, Add the process to memory
+            p.getPCB().setLowerMemoryBoundary( (Integer) canFitInMemory(programFilePath)[1] );
+            p.getPCB().setUpperMemoryBoundary( (Integer) canFitInMemory(programFilePath)[2] );
+            MyOS.getMemory().allocateMemoryPartition(p, (Integer) canFitInMemory(programFilePath)[1], (Integer) canFitInMemory(programFilePath)[2]);
+            MyOS.getScheduler().getInMemoryProcesses().add(p);
             System.out.println("Process added to memory");
 
             // Finalize process creation ???
@@ -104,12 +101,6 @@ public class Kernel {
 
     }
 
-    public void unloadProcessToDisk(Process p){
-
-    }
-
-    public void loadProcessToMemory(Process p){
-
-    }
+    // System Calls
 
 }

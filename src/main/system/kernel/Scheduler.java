@@ -1,4 +1,9 @@
-package main.elements;
+package main.system.kernel;
+
+import main.MyOS;
+import main.system.elements.Process;
+import main.system.elements.ProcessState;
+import main.system.exceptions.InvalidInstructionException;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -46,13 +51,11 @@ public class Scheduler {
         nextProcessID++;
         return temp;
     }
-
     public void addArrivedProcess(Process p){
-        // Add process to arrived & change to ready state from new state
+        // Add process to arrived & change its state from NEW to READY
         this.arrivedProcesses.add(p);
         p.getPCB().setProcessState(ProcessState.READY);
     }
-
     public void addBurstTime(int linesOfCode){
         // Add burst time corresponding to arrived process
         this.burstTimes.add(linesOfCode);
@@ -72,15 +75,27 @@ public class Scheduler {
 
         // If found, execute
         if(found){
+            // while(current process execution time < scheduler's time slice variable)
+
+            // Fetch
+            String instruction = MyOS.getInterpreter().getNextProcessInstruction(currentRunningProcess);
+
+            // Decode & execute
+            // SHOULD HANDLE THIS DIFFERENTLY!!!!!
+            try {
+                MyOS.getInterpreter().interpret( instruction );
+            } catch (InvalidInstructionException e) {
+                throw new RuntimeException(e);
+            }
+
+            // Increment PCB (We increment after executing to make sure that the instruction was executed successfully, so we can move on to the next)
+            currentRunningProcess.getPCB().setProgramCounter( currentRunningProcess.getPCB().getProgramCounter()+1 );
 
         }
         // Else, move to memory
         else {
 
         }
-
     }
-
-
 
 }
