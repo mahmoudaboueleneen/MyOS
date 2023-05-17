@@ -1,4 +1,4 @@
-package main.system.elements;
+package main.elements;
 
 public class Memory {
     /* We will use Dynamic Memory Partitioning:

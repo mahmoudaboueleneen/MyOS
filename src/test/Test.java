@@ -2,8 +2,6 @@ package test;
 
 import main.MyOS;
 import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class Test {
     private static MyOS testOS;

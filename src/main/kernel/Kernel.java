@@ -1,8 +1,8 @@
-package main.system.kernel;
+package main.kernel;
 
+import main.elements.Process;
 import main.MyOS;
-import main.system.elements.Mutex;
-import main.system.elements.Process;
+import main.elements.Mutex;
 
 public class Kernel {
 

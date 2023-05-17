@@ -1,8 +1,8 @@
-package main.system.elements;
+package main.elements;
 
 import main.MyOS;
-import main.system.exceptions.InvalidInstructionException;
-import main.system.elements.Process;
+import main.exceptions.InvalidInstructionException;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;

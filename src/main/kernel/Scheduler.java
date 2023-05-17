@@ -1,9 +1,9 @@
-package main.system.kernel;
+package main.kernel;
 
 import main.MyOS;
-import main.system.elements.Process;
-import main.system.elements.ProcessState;
-import main.system.exceptions.InvalidInstructionException;
+import main.elements.Process;
+import main.elements.ProcessState;
+import main.exceptions.InvalidInstructionException;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

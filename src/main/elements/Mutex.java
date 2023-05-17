@@ -1,8 +1,6 @@
-package main.system.elements;
+package main.elements;
 
 import main.MyOS;
-import main.system.elements.Process;
-import main.system.elements.ProcessState;
 
 import java.util.ArrayDeque;
 import java.util.Queue;

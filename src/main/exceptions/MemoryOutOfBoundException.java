@@ -1,4 +1,4 @@
-package main.system.exceptions;
+package main.exceptions;
 
 public class MemoryOutOfBoundException extends Exception{
     public MemoryOutOfBoundException() {

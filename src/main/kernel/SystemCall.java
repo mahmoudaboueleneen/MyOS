@@ -1,4 +1,4 @@
-package main.system.kernel;
+package main.kernel;
 
 public class SystemCall {
     /* System calls are the process’s way of requesting a service from the OS.

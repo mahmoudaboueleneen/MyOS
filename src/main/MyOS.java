@@ -1,10 +1,10 @@
 package main;
 
-import main.system.elements.Interpreter;
-import main.system.elements.Memory;
-import main.system.elements.Mutex;
-import main.system.kernel.Kernel;
-import main.system.kernel.Scheduler;
+import main.elements.Interpreter;
+import main.kernel.Kernel;
+import main.elements.Memory;
+import main.elements.Mutex;
+import main.kernel.Scheduler;
 
 public class MyOS {
     private static Mutex userInputMutex;
