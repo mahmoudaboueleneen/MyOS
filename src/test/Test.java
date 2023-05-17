@@ -66,8 +66,7 @@ public class Test {
 
         System.out.println("Initializing System Timer.. \n");
 
-        // Warm up Java VM first.
-        // Runs should be enough to run for 2-10 seconds.
+        // Warm up Java VM
         for(int i=-10000; i<10000 ;i++) {}
 
         // Sort arrival times and arrived processes in order.
