@@ -43,13 +43,10 @@ public class Test {
     }
 
     public static void main(String[] args){
-        int tq;
-        int maxProccessIndex = 0;
-        float avgWait = 0;
-        float avgTT = 0;
+        int timeSlice;
 
         System.out.print("Enter the round-robin time slice: \n");
-        tq = inp.nextInt();
+        timeSlice = inp.nextInt();
 
         // We anticipate the arrival of our 3 processes only.
         arrival = new int[3];
@@ -60,7 +57,7 @@ public class Test {
         locations[2] = "src/program_files/Program_3.txt";
 
         // Begin testing by creating an instance.
-        testOS = new MyOS(tq);
+        testOS = new MyOS(timeSlice);
 
         // Arrival time will be in seconds
         System.out.println("Enter the arrival time of P1, P2 and P3 in order respectively (integer only)");
