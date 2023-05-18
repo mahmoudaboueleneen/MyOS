@@ -1,6 +1,8 @@
 package main.kernel;
 
-import main.elements.Process;
+import main.elements.Memory;
+import main.elements.MemoryWord;
+import main.elements.ProcessMemoryImage;
 import main.MyOS;
 import main.elements.Mutex;
 
@@ -15,17 +17,10 @@ public class Kernel {
     public Object[] canFitInMemory(String programFilePath){
         boolean canFit = false;
         int linesOfCode = MyOS.getInterpreter().countFileLinesOfCode(programFilePath);
-        /* Memory size to be reserved for process = 5 (five PCB instance variables) +
-                                                    3 (each process needs enough space for three variables) +
-                                                    linesOfCode (each line of code will be stored as a memory word,
-                                                              and to simplify we will just fill in the memory word's
-                                                              variable name as "Instruction" and its data as the
-                                                              un-parsed line of code itself).
+        int PCB_INSTANCE_VARIABLES = 5;
+        int DATA_VARIABLES = 3;
 
-          We will assume, as provided in proj. desc., that the memory is large enough for any of the provided processes
-          by default.
-          */
-        int processMemorySize = 5 + 3 + linesOfCode;
+        int processMemorySize = PCB_INSTANCE_VARIABLES + DATA_VARIABLES + linesOfCode;
 
         // Next, search for space in the memory for the process
         int lowerMemoryBound = 0;
@@ -52,18 +47,17 @@ public class Kernel {
     }
 
     public void createNewProcess(String programFilePath) {
-        if( (boolean) canFitInMemory(programFilePath)[0] ){
-            // Create process, arrive at scheduler & add its burst time to scheduler
-            Process p = new Process( (Integer) canFitInMemory(programFilePath)[1],
-                                     (Integer) canFitInMemory(programFilePath)[2],
-                                     (Integer) canFitInMemory(programFilePath)[3],
-                                      MyOS.getInterpreter().getInstructionsFromFile(programFilePath)
-                                    );
-            MyOS.getScheduler().addArrivedProcess( p );
-            MyOS.getScheduler().addBurstTime( (Integer) canFitInMemory(programFilePath)[3] );
-            System.out.println("Process arrived at scheduler");
+        // Create process & arrive at scheduler
+        ProcessMemoryImage p = new ProcessMemoryImage( (Integer) canFitInMemory(programFilePath)[1],
+                                 (Integer) canFitInMemory(programFilePath)[2],
+                                 (Integer) canFitInMemory(programFilePath)[3],
+                                  MyOS.getInterpreter().getInstructionsFromFile(programFilePath)
+                                );
+        MyOS.getScheduler().addArrivedProcess( p );
+        MyOS.getScheduler().addBurstTime( (Integer) canFitInMemory(programFilePath)[3] );
 
-            // Now, Add the process to memory
+        if( (boolean) canFitInMemory(programFilePath)[0] ){
+            // Add the process to memory
             p.getPCB().setLowerMemoryBoundary( (Integer) canFitInMemory(programFilePath)[1] );
             p.getPCB().setUpperMemoryBoundary( (Integer) canFitInMemory(programFilePath)[2] );
             MyOS.getMemory().allocateMemoryPartition(p, (Integer) canFitInMemory(programFilePath)[1], (Integer) canFitInMemory(programFilePath)[2]);
@@ -85,22 +79,20 @@ public class Kernel {
         }
     }
 
-    public void readyProcess(Process p){
+    public void readyProcess(ProcessMemoryImage p){
 
     }
 
-    public void runProcess(Process p){
+    public void runProcess(ProcessMemoryImage p){
 
     }
 
-    public void blockProcess(Process p, Mutex m){
+    public void blockProcess(ProcessMemoryImage p, Mutex m){
 
     }
 
-    public void terminateProcess(Process p){
+    public void terminateProcess(ProcessMemoryImage p){
 
     }
-
-    // System Calls
 
 }

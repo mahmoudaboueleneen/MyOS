@@ -2,12 +2,15 @@ package main.elements;
 
 import main.MyOS;
 
-public class ProcessControlBlock {
+import java.io.Serializable;
+
+public class ProcessControlBlock implements Serializable {
         private int processID;
         private ProcessState processState;
         private int programCounter;
         private int lowerMemoryBoundary;
         private int upperMemoryBoundary;
+        private String tempLocation;
 
         public ProcessControlBlock(int lowerMemoryBoundary, int upperMemoryBoundary){
             this.processID = MyOS.getScheduler().getNextProcessID();
@@ -27,5 +30,7 @@ public class ProcessControlBlock {
         public void setLowerMemoryBoundary(int lowerMemoryBoundary) {this.lowerMemoryBoundary = lowerMemoryBoundary;}
         public int getUpperMemoryBoundary() {return upperMemoryBoundary;}
         public void setUpperMemoryBoundary(int upperMemoryBoundary) {this.upperMemoryBoundary = upperMemoryBoundary;}
+        public String getTempLocation() {return tempLocation;}
+        public void setTempLocation(String tempLocation) {this.tempLocation = tempLocation;}
 
 }

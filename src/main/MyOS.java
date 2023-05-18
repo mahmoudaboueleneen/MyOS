@@ -5,6 +5,7 @@ import main.kernel.Kernel;
 import main.elements.Memory;
 import main.elements.Mutex;
 import main.kernel.Scheduler;
+import main.kernel.SystemCall;
 
 public class MyOS {
     private static Mutex userInputMutex;
@@ -14,6 +15,7 @@ public class MyOS {
     private static Scheduler scheduler;
     private static Memory memory;
     private static Kernel kernel;
+    private static SystemCall systemCall;
 
     public static Mutex getUserInputMutex() {return userInputMutex;}
     public static Mutex getUserOutputMutex() {return userOutputMutex;}
@@ -21,6 +23,8 @@ public class MyOS {
     public static Interpreter getInterpreter() {return interpreter;}
     public static Scheduler getScheduler() {return scheduler;}
     public static Memory getMemory() {return memory;}
+    public static Kernel getKernel() {return kernel;}
+    public static SystemCall getSystemCall() {return systemCall;}
 
     public MyOS(int roundRobinTimeSlice){
         userInputMutex = new Mutex();
@@ -30,6 +34,7 @@ public class MyOS {
         scheduler = new Scheduler(roundRobinTimeSlice);
         memory = new Memory();
         kernel = new Kernel();
+        systemCall = new SystemCall();
     }
 
     public void runProgram(String programFilePath){

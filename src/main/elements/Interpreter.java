@@ -56,7 +56,7 @@ public class Interpreter {
     }
 
     // Fetch next instruction to be executed by inferring from PC
-    public String getNextProcessInstruction(Process p){
+    public String getNextProcessInstruction(ProcessMemoryImage p){
         int base = p.getPCB().getLowerMemoryBoundary() + 8;
         int offset = p.getPCB().getProgramCounter();
         return (String) MyOS.getMemory().readMemoryWord(base+offset).getVariableData();
@@ -71,7 +71,7 @@ public class Interpreter {
 
         switch (firstWord){
             case "print":
-
+                //MyOS.getSystemCall().printToScreen();
                 break;
             case "assign":
 
@@ -86,10 +86,10 @@ public class Interpreter {
 
                 break;
             case "semWait":
-
+                // mutex
                 break;
             case "semSignal":
-
+                // mutex
                 break;
             default:
                 throw new InvalidInstructionException();

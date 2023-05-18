@@ -12,59 +12,43 @@ public class Mutex {
         ONE     // Resource available.
     }
     private MutexValue value;
-    private Queue<Process> queue;
+    private final Queue<ProcessMemoryImage> blockedQueue;
     private int ownerID;
 
     public Mutex(){
-        this.queue = new ArrayDeque<Process>();
+        this.blockedQueue = new ArrayDeque<ProcessMemoryImage>();
     }
 
-    public void semWait(Process process){
+    public void semWait(ProcessMemoryImage processMemoryImage){
         if (this.value == MutexValue.ONE) {
             // Acquire resource
-            this.ownerID = process.getPCB().getProcessID();
+            this.ownerID = processMemoryImage.getPCB().getProcessID();
             this.value = MutexValue.ZERO;
         }
         else {
             // Block process
-            this.queue.add(process);
-            process.getPCB().setProcessState(ProcessState.BLOCKED);
-            MyOS.getScheduler().getBlockedQueue().add(process);
+            this.blockedQueue.add(processMemoryImage);
+            processMemoryImage.getPCB().setProcessState(ProcessState.BLOCKED);
+            MyOS.getScheduler().getBlockedQueue().add(processMemoryImage);
         }
 
     }
 
-    public void semSignal(Process process){
-        if(this.ownerID == process.getPCB().getProcessID()) {
-            if (this.queue.isEmpty()) {
+    public void semSignal(ProcessMemoryImage processMemoryImage){
+        if(this.ownerID == processMemoryImage.getPCB().getProcessID()) {
+            if (this.blockedQueue.isEmpty()) {
                 // Release resource
                 this.value = MutexValue.ONE;
             }
             else {
                 // Release a process
-                Process releasedProcess = this.queue.remove();
-                releasedProcess.getPCB().setProcessState(ProcessState.READY);
-                MyOS.getScheduler().getReadyQueue().add(releasedProcess);
+                ProcessMemoryImage releasedProcessMemoryImage = this.blockedQueue.remove();
+                releasedProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
+                MyOS.getScheduler().getReadyQueue().add(releasedProcessMemoryImage);
                 // Reassign the resource to the released process
-                this.ownerID = releasedProcess.getPCB().getProcessID();
+                this.ownerID = releasedProcessMemoryImage.getPCB().getProcessID();
             }
         }
     }
 
-
-//    public static Mutex userInputMutex;
-//
-//    public void interpretMutex(){
-//        switch(){
-//            case "userInput":
-//
-//                break;
-//            case "userOutput":
-//
-//                break;
-//            case "File":
-//
-//                break;
-//        }
-//    }
 }

@@ -5,7 +5,7 @@ public class SystemCall {
      * In order for a process to be able to use any of the available hardware, it makes a request,
        system call, to the operating system.
     */
-
+    public SystemCall(){}
 
     // Read the data of any file from the disk
     public void readDataFromFileOnDisk(){

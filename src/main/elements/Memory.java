@@ -78,7 +78,7 @@ public class Memory {
     }
 
     // Allocates memory block for a process
-    public void allocateMemoryPartition(Process p, int lowerMemoryBound, int upperMemoryBound) {
+    public void allocateMemoryPartition(ProcessMemoryImage p, int lowerMemoryBound, int upperMemoryBound) {
         int adr = lowerMemoryBound;
 
         // Allocate space for PCB
@@ -87,14 +87,15 @@ public class Memory {
         writeMemoryWord(adr + 2, new MemoryWord("PROGRAM_COUNTER", p.getPCB().getProgramCounter()) );
         writeMemoryWord(adr + 3, new MemoryWord("LOWER_MEM_BOUND", lowerMemoryBound) );
         writeMemoryWord(adr + 4, new MemoryWord("UPPER_MEM_BOUND", upperMemoryBound) );
+        writeMemoryWord(adr + 5, new MemoryWord("TEMP_LOCATION", p.getPCB().getTempLocation()==null?" ":p.getPCB().getTempLocation()) );
 
         // Allocate space for Data/Variables (starts as empty but fills up with data when process starts executing and initializing its own variables)
-        writeMemoryWord(adr + 5, new MemoryWord("---", "---"));
         writeMemoryWord(adr + 6, new MemoryWord("---", "---"));
         writeMemoryWord(adr + 7, new MemoryWord("---", "---"));
+        writeMemoryWord(adr + 8, new MemoryWord("---", "---"));
 
         // Allocate space for Instructions
-        int j = adr + 8;
+        int j = adr + 9;
         for(String instruction : p.getInstructions()){
             writeMemoryWord(j, new MemoryWord("INSTRUCTION", instruction));
             j++;
