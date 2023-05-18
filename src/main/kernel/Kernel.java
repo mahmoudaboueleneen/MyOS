@@ -46,21 +46,23 @@ public class Kernel {
         return result;
     }
 
-    public void createNewProcess(String programFilePath) {
+    public synchronized void createNewProcess(String programFilePath) {
         // Create process & arrive at scheduler
-        ProcessMemoryImage p = new ProcessMemoryImage( (Integer) canFitInMemory(programFilePath)[1],
-                                 (Integer) canFitInMemory(programFilePath)[2],
-                                 (Integer) canFitInMemory(programFilePath)[3],
+        Object[] canFitInMemory = canFitInMemory(programFilePath);
+        ProcessMemoryImage p = new ProcessMemoryImage( (Integer) canFitInMemory[1],
+                                 (Integer) canFitInMemory[2],
+                                 (Integer) canFitInMemory[3],
                                   MyOS.getInterpreter().getInstructionsFromFile(programFilePath)
                                 );
-        MyOS.getScheduler().addArrivedProcess( p );
-        MyOS.getScheduler().addBurstTime( (Integer) canFitInMemory(programFilePath)[3] );
+        MyOS.getScheduler().addArrivedProcess(p);
+        MyOS.getScheduler().addToReadyQueue(p);
+        MyOS.getScheduler().addBurstTime( (Integer) canFitInMemory[3] );
 
         if( (boolean) canFitInMemory(programFilePath)[0] ){
             // Add the process to memory
-            p.getPCB().setLowerMemoryBoundary( (Integer) canFitInMemory(programFilePath)[1] );
-            p.getPCB().setUpperMemoryBoundary( (Integer) canFitInMemory(programFilePath)[2] );
-            MyOS.getMemory().allocateMemoryPartition(p, (Integer) canFitInMemory(programFilePath)[1], (Integer) canFitInMemory(programFilePath)[2]);
+            p.getPCB().setLowerMemoryBoundary( (Integer) canFitInMemory[1] );
+            p.getPCB().setUpperMemoryBoundary( (Integer) canFitInMemory[2] );
+            MyOS.getMemory().allocateMemoryPartition(p, (Integer) canFitInMemory[1], (Integer) canFitInMemory[2]);
             MyOS.getScheduler().getInMemoryProcesses().add(p);
             System.out.println("Process added to memory");
 

@@ -5,20 +5,20 @@ import java.util.Scanner;
 
 public class Test {
     private static MyOS testOS;
-    private static Scanner inp = new Scanner(System.in);
+    private static final Scanner inp = new Scanner(System.in);
     private static int[] arrival;
     private static String[] locations;
 
     static class Counter implements Runnable {
-        private int count = 0;
+        private float count = 0;
 
         @Override
         public void run() {
             int i = 0;
             while (true) {
-                MyOS.getScheduler().executeRoundRobin();
+//                MyOS.getScheduler().executeRoundRobin();
                 synchronized (this) {
-                    if(count == arrival[i]){
+                    while(i < arrival.length && Math.round(count * 10.0) / 10.0 == arrival[i]){
                         System.out.println("Process arrived: " + locations[i]);
                         testOS.createProcess(locations[i]);
                         i++;
@@ -28,17 +28,17 @@ public class Test {
                         System.out.println(MyOS.getMemory());
                         return;  // Here we finally exit from the thread
                     }
-                    count++;
+                    count += 0.2;
                 }
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(200);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
         }
 
-        public synchronized int getCount() {
+        public synchronized float getCount() {
             return count;
         }
     }
@@ -63,12 +63,12 @@ public class Test {
         // Arrival time will be in seconds
         System.out.println("Enter the arrival time of P1, P2 and P3 in order respectively (integer only)");
         for(int i = 0; i < 3; i++)
-            arrival[i] = (int) (inp.nextInt());
+            arrival[i] = (inp.nextInt());
 
         System.out.println("Initializing System Timer.. \n");
 
         // Warm up Java VM
-        for(int i=-10000; i<10000 ;i++) {}
+//        for(int i=-10000; i<10000 ;i++) {}
 
         // Sort arrival times and arrived processes in order.
         for (int i = 0; i < arrival.length - 1; i++) {

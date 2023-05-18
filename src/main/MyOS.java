@@ -38,7 +38,6 @@ public class MyOS {
     }
 
     public void createProcess(String programFilePath){
-        kernel.createNewProcess(programFilePath);
+        new Thread(() -> kernel.createNewProcess(programFilePath)).start();
     }
-
 }

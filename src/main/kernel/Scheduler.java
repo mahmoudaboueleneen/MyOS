@@ -6,9 +6,7 @@ import main.elements.ProcessState;
 import main.exceptions.InvalidInstructionException;
 
 import java.io.*;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Queue;
+import java.util.*;
 
 public class Scheduler {
     private final ArrayList<ProcessMemoryImage> arrivedProcessMemoryImages;
@@ -56,6 +54,9 @@ public class Scheduler {
     public void addArrivedProcess(ProcessMemoryImage p){
         // Add process to arrived & change its state from NEW to READY
         this.arrivedProcessMemoryImages.add(p);
+    }
+    public void addToReadyQueue(ProcessMemoryImage p) {
+        this.readyQueue.add(p);
         p.getPCB().setProcessState(ProcessState.READY);
     }
 
@@ -106,14 +107,41 @@ public class Scheduler {
         currentRunningProcessMemoryImage = readyQueue.remove();
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.RUNNING);
     }
+    private void preemptCurrentProcess() {
+        readyQueue.add(currentRunningProcessMemoryImage);
+        currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
+    }
+    public void executeRoundRobinWithInstructions() {
+        while(! readyQueue.isEmpty()) {
+            assignNewRunningProcess();
+            while(currentRunningProcessMemoryImage.getInstructions().length < 2) {
+
+            }
+            preemptCurrentProcess();
+        }
+    }
 
     public void executeRoundRobin() {
-        if(readyQueue.isEmpty())
+        if(readyQueue.isEmpty()) {
             return;
-
-        while(!readyQueue.isEmpty()){
-            assignNewRunningProcess();
         }
+        int delay = 0;
+        if(currentRunningProcessMemoryImage == null) {
+            assignNewRunningProcess();
+            delay = roundRobinTimeSlice * 1000;
+        }
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                preemptCurrentProcess();
+                assignNewRunningProcess();
+            }
+
+            @Override
+            public boolean cancel() {
+                return super.cancel();
+            }
+        }, delay, roundRobinTimeSlice * 1000);
 
 
 
@@ -144,4 +172,13 @@ public class Scheduler {
         }
     }
 
+    public static void main(String[] args) {
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("assignment");
+                System.out.println("preemption");
+            }
+        }, 0, 1000);
+    }
 }
