@@ -37,7 +37,7 @@ public class MyOS {
         systemCall = new SystemCall();
     }
 
-    public void runProgram(String programFilePath){
+    public void createProcess(String programFilePath){
         kernel.createNewProcess(programFilePath);
     }
 

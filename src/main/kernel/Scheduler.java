@@ -102,20 +102,25 @@ public class Scheduler {
         return p;
     }
 
+    private void assignNewRunningProcess(){
+        currentRunningProcessMemoryImage = readyQueue.remove();
+        currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.RUNNING);
+    }
+
     public void executeRoundRobin() {
+        if(readyQueue.isEmpty())
+            return;
 
-        boolean found = false;
-
-        // Check if process is found in memory
-        for(ProcessMemoryImage p : inMemoryProcessMemoryImages){
-            if(p.equals(currentRunningProcessMemoryImage)){
-                found = true;
-                break;
-            }
+        while(!readyQueue.isEmpty()){
+            assignNewRunningProcess();
         }
 
-        // If found, execute
-        if(found){
+
+
+
+        // Check if process is found in memory,
+        // if found, execute.
+        if(inMemoryProcessMemoryImages.contains(currentRunningProcessMemoryImage)){
             // while(current process execution time < scheduler's time slice variable)
 
             // Fetch
@@ -133,7 +138,7 @@ public class Scheduler {
             currentRunningProcessMemoryImage.getPCB().setProgramCounter( currentRunningProcessMemoryImage.getPCB().getProgramCounter()+1 );
 
         }
-        // Else, move to memory
+        // else, move to memory then execute
         else {
 
         }

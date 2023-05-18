@@ -16,10 +16,11 @@ public class Test {
         public void run() {
             int i = 0;
             while (true) {
+                MyOS.getScheduler().executeRoundRobin();
                 synchronized (this) {
                     if(count == arrival[i]){
                         System.out.println("Process arrived: " + locations[i]);
-                        testOS.runProgram(locations[i]);
+                        testOS.createProcess(locations[i]);
                         i++;
                     }
                     if(i == arrival.length) {
@@ -83,6 +84,7 @@ public class Test {
                 }
             }
         }
+
 
         // Beginning timer, incrementing timer until the first process scheduled to arrive arrives.
         Counter counter = new Counter();
