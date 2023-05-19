@@ -62,14 +62,13 @@ public class Scheduler {
     }
 
 
-//    public synchronized void printQueues(){
-//        System.out.println("Ready Queue: {");
-//        Iterator<ProcessMemoryImage> iterator = readyQueue.iterator();
-//        while (iterator.hasNext()) {
-//            int processID = iterator.next().getPCB().getProcessID();
-//            System.out.println(processID + " ");
-//        }
-//    }
+    public synchronized void printReadyQueue(){
+        System.out.println("Ready Queue (First to last): " + readyQueue);
+    }
+
+    public synchronized void printBlockedQueue(){
+        System.out.println("Blocked Queue (First to last): " + blockedQueue);
+    }
 
     public synchronized void printCurrentRunningProcess(){
         System.out.println("Current Running Process(ID): " + currentRunningProcessMemoryImage);
