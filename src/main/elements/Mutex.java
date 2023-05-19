@@ -8,25 +8,30 @@ import java.util.Queue;
 public class Mutex {
 
     public enum MutexValue{
-        ZERO,   // Resource unavailable.
-        ONE     // Resource available.
+        ZERO,   // Resource is taken.
+        ONE     // Resource is free.
     }
     private MutexValue value;
     private final Queue<ProcessMemoryImage> blockedQueue;
     private int ownerID;
 
     public Mutex(){
+        this.value = MutexValue.ONE;
         this.blockedQueue = new ArrayDeque<>();
+        this.ownerID = -1;
     }
 
+    /**
+     * Attempt to acquire resource.
+     */
     public synchronized void semWait(ProcessMemoryImage processMemoryImage){
         if (this.value == MutexValue.ONE) {
-            // Acquire resource
+//          Acquire resource
             this.ownerID = processMemoryImage.getPCB().getProcessID();
             this.value = MutexValue.ZERO;
         }
         else {
-            // Block process
+//          Block process
             this.blockedQueue.add(processMemoryImage);
             processMemoryImage.getPCB().setProcessState(ProcessState.BLOCKED);
             Kernel.getScheduler().getBlockedQueue().add(processMemoryImage);
@@ -34,18 +39,21 @@ public class Mutex {
 
     }
 
+    /**
+     * Attempt to release resource.
+      */
     public synchronized void semSignal(ProcessMemoryImage processMemoryImage){
         if(this.ownerID == processMemoryImage.getPCB().getProcessID()) {
             if (this.blockedQueue.isEmpty()) {
-                // Release resource
+//              Release resource
                 this.value = MutexValue.ONE;
             }
             else {
-                // Release a process
+//              Unblock a process
                 ProcessMemoryImage releasedProcessMemoryImage = this.blockedQueue.remove();
                 releasedProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
                 Kernel.getScheduler().getReadyQueue().add(releasedProcessMemoryImage);
-                // Reassign the resource to the released process
+//              Reassign the resource to the newly unblocked process
                 this.ownerID = releasedProcessMemoryImage.getPCB().getProcessID();
             }
         }
