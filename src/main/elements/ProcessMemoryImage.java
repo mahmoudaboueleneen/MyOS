@@ -7,7 +7,7 @@ public class ProcessMemoryImage implements Serializable {
     private final MemoryWord[] variables;
     private final String[] instructions;
 
-    public ProcessMemoryImage(int lowerMemoryBoundary, int upperMemoryBoundary, int linesOfCode, String[] instructions){
+    public ProcessMemoryImage(int lowerMemoryBoundary, int upperMemoryBoundary, String[] instructions){
         this.processControlBlock = new ProcessControlBlock(lowerMemoryBoundary, upperMemoryBoundary);
         this.variables = new MemoryWord[3];
         this.instructions = instructions;
@@ -19,4 +19,5 @@ public class ProcessMemoryImage implements Serializable {
     public synchronized MemoryWord[] getVariables() {return variables;}
     public synchronized String[] getInstructions() {return instructions;}
 
+    public String toString(){return getPCB().getProcessID() + "";}
 }
