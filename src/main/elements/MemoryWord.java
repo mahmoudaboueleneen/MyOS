@@ -9,11 +9,6 @@ public class MemoryWord {
         this.variableData = variableData;
     }
 
-    public String getVariableName() {
-        return variableName;
-    }
-
-    public Object getVariableData() {
-        return variableData;
-    }
+    public synchronized String getVariableName() {return variableName;}
+    public synchronized Object getVariableData() {return variableData;}
 }

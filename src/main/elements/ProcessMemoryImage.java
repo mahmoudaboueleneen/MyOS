@@ -3,9 +3,9 @@ package main.elements;
 import java.io.Serializable;
 
 public class ProcessMemoryImage implements Serializable {
-    private ProcessControlBlock processControlBlock;
-    private MemoryWord[] variables;
-    private String[] instructions;
+    private final ProcessControlBlock processControlBlock;
+    private final MemoryWord[] variables;
+    private final String[] instructions;
 
     public ProcessMemoryImage(int lowerMemoryBoundary, int upperMemoryBoundary, int linesOfCode, String[] instructions){
         this.processControlBlock = new ProcessControlBlock(lowerMemoryBoundary, upperMemoryBoundary);
@@ -13,10 +13,10 @@ public class ProcessMemoryImage implements Serializable {
         this.instructions = instructions;
     }
 
-    public ProcessControlBlock getPCB() {
+    public synchronized ProcessControlBlock getPCB() {
         return processControlBlock;
     }
-    public MemoryWord[] getVariables() {return variables;}
-    public String[] getInstructions() {return instructions;}
+    public synchronized MemoryWord[] getVariables() {return variables;}
+    public synchronized String[] getInstructions() {return instructions;}
 
 }

@@ -1,6 +1,6 @@
 package main.elements;
 
-import main.MyOS;
+import main.kernel.Kernel;
 import main.exceptions.InvalidInstructionException;
 
 import java.io.File;
@@ -13,8 +13,8 @@ public class Interpreter {
     public Interpreter(){}
 
     // Reads full program file and returns String[] of the instructions
-    public String[] getInstructionsFromFile(String filePath){
-        ArrayList<String> res = new ArrayList<String>();
+    public synchronized String[] getInstructionsFromFile(String filePath){
+        ArrayList<String> res = new ArrayList<>();
 
         try {
             File fileObj = new File(filePath);
@@ -33,17 +33,13 @@ public class Interpreter {
         return res.toArray(new String[0]);
     }
 
-    // Reads file and count lines of code to determine memory size to reserve for process. Called by the Kernel when checking if process can fit in memory
-    public int countFileLinesOfCode(String filePath){
-        // System.out.println("Counting lines of code...");
+    public synchronized int countFileLinesOfCode(String filePath){
         int linesOfCode = 0;
 
         try {
             File fileObj = new File(filePath);
             Scanner myReader = new Scanner(fileObj);
             while (myReader.hasNextLine()) {
-                String data = myReader.nextLine();
-                //System.out.println(data);
                 linesOfCode++;
             }
             myReader.close();
@@ -55,15 +51,15 @@ public class Interpreter {
         return linesOfCode;
     }
 
-    // Fetch next instruction to be executed by inferring from PC
-    public String getNextProcessInstruction(ProcessMemoryImage p){
+    // Fetch next instruction to be executed
+    public synchronized String getNextProcessInstruction(ProcessMemoryImage p){
         int base = p.getPCB().getLowerMemoryBoundary() + 8;
         int offset = p.getPCB().getProgramCounter();
-        return (String) MyOS.getMemory().readMemoryWord(base+offset).getVariableData();
+        return (String) Kernel.getMemory().readMemoryWord(base+offset).getVariableData();
     }
 
     // Decode & execute instruction
-    public void interpret(String instruction) throws InvalidInstructionException {
+    public synchronized void interpret(String instruction) throws InvalidInstructionException {
         // Get all words in the instruction (separated by spaces)
         String[] words = instruction.split(" ");
 

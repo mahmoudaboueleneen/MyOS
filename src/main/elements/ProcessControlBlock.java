@@ -1,6 +1,6 @@
 package main.elements;
 
-import main.MyOS;
+import main.kernel.Kernel;
 
 import java.io.Serializable;
 
@@ -13,24 +13,24 @@ public class ProcessControlBlock implements Serializable {
         private String tempLocation;
 
         public ProcessControlBlock(int lowerMemoryBoundary, int upperMemoryBoundary){
-            this.processID = MyOS.getScheduler().getNextProcessID();
+            this.processID = Kernel.getScheduler().getNextProcessID();
             this.processState = ProcessState.NEW;
             this.programCounter = 0;
             this.lowerMemoryBoundary = lowerMemoryBoundary;
             this.upperMemoryBoundary = upperMemoryBoundary;
         }
 
-        public int getProcessID() {return processID;}
-        public void setProcessID(int processID) {this.processID = processID;}
-        public ProcessState getProcessState() {return processState;}
-        public void setProcessState(ProcessState processState) {this.processState = processState;}
-        public int getProgramCounter() {return programCounter;}
-        public void setProgramCounter(int programCounter) {this.programCounter = programCounter;}
-        public int getLowerMemoryBoundary() {return lowerMemoryBoundary;}
-        public void setLowerMemoryBoundary(int lowerMemoryBoundary) {this.lowerMemoryBoundary = lowerMemoryBoundary;}
-        public int getUpperMemoryBoundary() {return upperMemoryBoundary;}
-        public void setUpperMemoryBoundary(int upperMemoryBoundary) {this.upperMemoryBoundary = upperMemoryBoundary;}
-        public String getTempLocation() {return tempLocation;}
-        public void setTempLocation(String tempLocation) {this.tempLocation = tempLocation;}
+        public synchronized int getProcessID() {return processID;}
+        public synchronized void setProcessID(int processID) {this.processID = processID;}
+        public synchronized ProcessState getProcessState() {return processState;}
+        public synchronized void setProcessState(ProcessState processState) {this.processState = processState;}
+        public synchronized int getProgramCounter() {return programCounter;}
+        public synchronized void setProgramCounter(int programCounter) {this.programCounter = programCounter;}
+        public synchronized int getLowerMemoryBoundary() {return lowerMemoryBoundary;}
+        public synchronized void setLowerMemoryBoundary(int lowerMemoryBoundary) {this.lowerMemoryBoundary = lowerMemoryBoundary;}
+        public synchronized int getUpperMemoryBoundary() {return upperMemoryBoundary;}
+        public synchronized void setUpperMemoryBoundary(int upperMemoryBoundary) {this.upperMemoryBoundary = upperMemoryBoundary;}
+        public synchronized String getTempLocation() {return tempLocation;}
+        public synchronized void setTempLocation(String tempLocation) {this.tempLocation = tempLocation;}
 
 }

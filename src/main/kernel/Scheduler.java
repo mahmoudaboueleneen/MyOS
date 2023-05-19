@@ -1,6 +1,5 @@
 package main.kernel;
 
-import main.MyOS;
 import main.elements.ProcessMemoryImage;
 import main.elements.ProcessState;
 import main.exceptions.InvalidInstructionException;
@@ -17,7 +16,7 @@ public class Scheduler {
     private int nextProcessID;
     private ProcessMemoryImage currentRunningProcessMemoryImage;
     private final int roundRobinTimeSlice;
-    private int timer;
+    //private int timer;
 
     public Scheduler(int roundRobinTimeSlice){
         this.arrivedProcessMemoryImages = new ArrayList<>();
@@ -27,43 +26,45 @@ public class Scheduler {
         this.blockedQueue = new ArrayDeque<>();
         this.nextProcessID = 0;
         this.roundRobinTimeSlice = roundRobinTimeSlice;
-        this.timer = 0;
+        //this.timer = 0;
     }
 
-    public ArrayList<ProcessMemoryImage> getArrivedProcesses() {
+    public synchronized ArrayList<ProcessMemoryImage> getArrivedProcesses() {
         return arrivedProcessMemoryImages;
     }
-    public ProcessMemoryImage getCurrentRunningProcess() {
+    public synchronized ProcessMemoryImage getCurrentRunningProcess() {
         return currentRunningProcessMemoryImage;
     }
-    public ArrayList<ProcessMemoryImage> getInMemoryProcesses() {
+    public synchronized ArrayList<ProcessMemoryImage> getInMemoryProcesses() {
         return inMemoryProcessMemoryImages;
     }
-    public Queue<ProcessMemoryImage> getReadyQueue() {
+    public synchronized Queue<ProcessMemoryImage> getReadyQueue() {
         return readyQueue;
     }
-    public Queue<ProcessMemoryImage> getBlockedQueue() {
+    public synchronized Queue<ProcessMemoryImage> getBlockedQueue() {
         return blockedQueue;
     }
-    public int getNextProcessID() {
+    public synchronized int getNextProcessID() {
         int temp = nextProcessID;
         nextProcessID++;
         return temp;
     }
 
-    public void addArrivedProcess(ProcessMemoryImage p){
-        // Add process to arrived & change its state from NEW to READY
+    // Add process to arrived & change its state from NEW to READY
+    public synchronized void addArrivedProcess(ProcessMemoryImage p){
         this.arrivedProcessMemoryImages.add(p);
     }
-    public void addToReadyQueue(ProcessMemoryImage p) {
+
+    // Add burst time corresponding to arrived process
+    public synchronized void addBurstTime(int linesOfCode){
+        this.burstTimes.add(linesOfCode);
+    }
+
+    public synchronized void addToReadyQueue(ProcessMemoryImage p) {
         this.readyQueue.add(p);
         p.getPCB().setProcessState(ProcessState.READY);
     }
 
-    public void addBurstTime(int linesOfCode){
-        // Add burst time corresponding to arrived process
-        this.burstTimes.add(linesOfCode);
-    }
 
 //    public void printQueues(){
 //        System.out.println("Ready Queue: {");
@@ -75,7 +76,7 @@ public class Scheduler {
 //    }
 
     // Serialize Process Memory Image
-    public void swapOutToDisk(ProcessMemoryImage p){
+    public synchronized void swapOutToDisk(ProcessMemoryImage p){
         try {
             FileOutputStream fileOut = new FileOutputStream("src/temp/" + p.getPCB().getProcessID() + ".txt");
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
@@ -89,7 +90,7 @@ public class Scheduler {
     }
 
     // Deserialize Process Memory Image
-    public ProcessMemoryImage swapInFromDisk(String location){
+    public synchronized ProcessMemoryImage swapInFromDisk(String location){
         ProcessMemoryImage p = null;
         try {
             FileInputStream fileIn = new FileInputStream(location);
@@ -103,15 +104,17 @@ public class Scheduler {
         return p;
     }
 
-    private void assignNewRunningProcess(){
+    private synchronized void assignNewRunningProcess(){
         currentRunningProcessMemoryImage = readyQueue.remove();
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.RUNNING);
     }
-    private void preemptCurrentProcess() {
+
+    private synchronized void preemptCurrentProcess() {
         readyQueue.add(currentRunningProcessMemoryImage);
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
     }
-    public void executeRoundRobinWithInstructions() {
+
+    public synchronized void executeRoundRobinWithInstructions() {
         while(! readyQueue.isEmpty()) {
             assignNewRunningProcess();
             while(currentRunningProcessMemoryImage.getInstructions().length < 2) {
@@ -121,7 +124,7 @@ public class Scheduler {
         }
     }
 
-    public void executeRoundRobin() {
+    public synchronized void executeRoundRobin() {
         if(readyQueue.isEmpty()) {
             return;
         }
@@ -152,12 +155,12 @@ public class Scheduler {
             // while(current process execution time < scheduler's time slice variable)
 
             // Fetch
-            String instruction = MyOS.getInterpreter().getNextProcessInstruction(currentRunningProcessMemoryImage);
+            String instruction = Kernel.getInterpreter().getNextProcessInstruction(currentRunningProcessMemoryImage);
 
             // Decode & execute
             // SHOULD HANDLE THIS DIFFERENTLY!!!!!
             try {
-                MyOS.getInterpreter().interpret( instruction );
+                Kernel.getInterpreter().interpret( instruction );
             } catch (InvalidInstructionException e) {
                 throw new RuntimeException(e);
             }
@@ -172,13 +175,4 @@ public class Scheduler {
         }
     }
 
-    public static void main(String[] args) {
-        new Timer().scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                System.out.println("assignment");
-                System.out.println("preemption");
-            }
-        }, 0, 1000);
-    }
 }

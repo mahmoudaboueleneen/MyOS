@@ -1,13 +1,10 @@
 package test;
 
-import main.MyOS;
+import main.kernel.Kernel;
 
 public class Test2 {
-    private static MyOS testOS;
 
     public static void main(String[] args){
-        testOS = new MyOS(2);
-
-        System.out.println(MyOS.getMemory());
+        Kernel.initDefault();
     }
 }

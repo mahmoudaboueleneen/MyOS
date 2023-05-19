@@ -1,77 +1,161 @@
 package main.kernel;
 
-import main.elements.Memory;
-import main.elements.MemoryWord;
+import main.elements.Interpreter;
 import main.elements.ProcessMemoryImage;
-import main.MyOS;
+import main.elements.Memory;
 import main.elements.Mutex;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
 public class Kernel {
+    private static Kernel kernel; // instance of kernel
 
-    public Kernel(){}
+    private static Mutex userInputMutex;
+    private static Mutex userOutputMutex;
+    private static Mutex fileMutex;
+    private static Interpreter interpreter;
+    private static Scheduler scheduler;
+    private static Memory memory;
+    private static SystemCallHandler systemCallHandler;
 
-    public void reorganizeMemory(){
+    public static Mutex getUserInputMutex() {return userInputMutex;}
+    public static Mutex getUserOutputMutex() {return userOutputMutex;}
+    public static Mutex getFileMutex() {return fileMutex;}
+    public static Interpreter getInterpreter() {return interpreter;}
+    public static Scheduler getScheduler() {return scheduler;}
+    public static Memory getMemory() {return memory;}
+    public static Kernel getKernel() {return kernel;}
+    public static SystemCallHandler getSystemCall() {return systemCallHandler;}
+
+    public Kernel(int roundRobinTimeSlice){
+        userInputMutex = new Mutex();
+        userOutputMutex = new Mutex();
+        fileMutex = new Mutex();
+        interpreter = new Interpreter();
+        scheduler = new Scheduler(roundRobinTimeSlice);
+        memory = new Memory();
+        systemCallHandler = new SystemCallHandler();
+    }
+
+    public static void initDefault(){
+        int INSTRUCTIONS_PER_TIME_SLICE = 2;
+        System.out.print("Instructions per time slice:" + INSTRUCTIONS_PER_TIME_SLICE + "\n");
+
+        int[] arrivalTimes = {0,1,4};
+        String[] arrivalLocations = {"src/program_files/Program_1.txt",
+                                     "src/program_files/Program_2.txt",
+                                     "src/program_files/Program_3.txt"
+        };
+        kernel = new Kernel(2);
+
+        // Beginning counter representing time, incrementing timer until the first process scheduled to arrive arrives
+        Counter counter = new Counter();
+        System.out.println("Initializing System Timer.. \n");
+        counter.run(arrivalTimes, arrivalLocations);
+    }
+
+    public static void init(){
+        Scanner inp = new Scanner(System.in);
+        int instructionsPerTimeSlice;
+
+        System.out.print("Enter the instructions per time slice (round robin): \n");
+        instructionsPerTimeSlice = inp.nextInt();
+
+        int[] arrivalTimes = new int[3];
+        String[] arrivalLocations = {"src/program_files/Program_1.txt",
+                                     "src/program_files/Program_2.txt",
+                                     "src/program_files/Program_3.txt"
+        };
+        kernel = new Kernel(instructionsPerTimeSlice);
+
+        System.out.println("Enter the arrival time of P1, P2 and P3 in order respectively (integer only)");
+        for(int i = 0; i < 3; i++)
+            arrivalTimes[i] = (inp.nextInt());
+
+        // Sort arrival times and arrived processes in order
+        for (int i = 0; i < arrivalTimes.length - 1; i++) {
+            for (int j = 0; j < arrivalTimes.length - i - 1; j++) {
+                if (arrivalTimes[j] > arrivalTimes[j + 1]) {
+                    int temp = arrivalTimes[j];
+                    arrivalTimes[j] = arrivalTimes[j + 1];
+                    arrivalTimes[j + 1] = temp;
+
+                    String temp2 = arrivalLocations[j];
+                    arrivalLocations[j] = arrivalLocations[j + 1];
+                    arrivalLocations[j + 1] = temp2;
+                }
+            }
+        }
+
+        // Beginning counter representing time, incrementing timer until the first process scheduled to arrive arrives
+        Counter counter = new Counter();
+        System.out.println("Initializing System Timer.. \n");
+        counter.run(arrivalTimes, arrivalLocations);
 
     }
 
-    public Object[] canFitInMemory(String programFilePath){
+    public synchronized Object[] canFitInMemory(String programFilePath){
         boolean canFit = false;
-        int linesOfCode = MyOS.getInterpreter().countFileLinesOfCode(programFilePath);
-        int PCB_INSTANCE_VARIABLES = 5;
+        int linesOfCode = Kernel.getInterpreter().countFileLinesOfCode(programFilePath);
+        int PCB_INSTANCE_VARIABLES = 6;
         int DATA_VARIABLES = 3;
-
         int processMemorySize = PCB_INSTANCE_VARIABLES + DATA_VARIABLES + linesOfCode;
 
-        // Next, search for space in the memory for the process
+        // Search for space in the memory
         int lowerMemoryBound = 0;
-        int upperMemoryBound = 0;
-        boolean[] occupied = MyOS.getMemory().getOccupied();
+        int upperMemoryBound;
+        boolean[] occupied = Kernel.getMemory().getOccupied();
         for(int i = 0; i < occupied.length; i++) {
-        // If we find any space in the memory, get the starting address of this space
             if(!occupied[i]){
                 lowerMemoryBound = i;
                 canFit = true;
                 break;
             }
         }
-        // Calculate the memory size of the process  and see if it can fit
+
+        // Check if process can fit in the found memory space
         if(lowerMemoryBound + processMemorySize > 40)
             canFit = false;
+
+        // Return canFit flag + (possible) assigned memory boundaries for the process
         upperMemoryBound = lowerMemoryBound + processMemorySize - 1;
         Object[] result = new Object[4];
         result[0] = canFit;
         result[1] = lowerMemoryBound;
         result[2] = upperMemoryBound;
         result[3] = processMemorySize;
+
         return result;
     }
 
     public synchronized void createNewProcess(String programFilePath) {
-        // Create process & arrive at scheduler
+        // Create ProcessMemoryImage and arrive at Scheduler
         Object[] canFitInMemory = canFitInMemory(programFilePath);
         ProcessMemoryImage p = new ProcessMemoryImage( (Integer) canFitInMemory[1],
-                                 (Integer) canFitInMemory[2],
-                                 (Integer) canFitInMemory[3],
-                                  MyOS.getInterpreter().getInstructionsFromFile(programFilePath)
-                                );
-        MyOS.getScheduler().addArrivedProcess(p);
-        MyOS.getScheduler().addToReadyQueue(p);
-        MyOS.getScheduler().addBurstTime( (Integer) canFitInMemory[3] );
+                                                       (Integer) canFitInMemory[2],
+                                                       (Integer) canFitInMemory[3],
+                                                       Kernel.getInterpreter().getInstructionsFromFile(programFilePath) );
+        Kernel.getScheduler().addArrivedProcess(p);
+        Kernel.getScheduler().addToReadyQueue(p);
+        Kernel.getScheduler().addBurstTime( (Integer) canFitInMemory[3] );
 
-        if( (boolean) canFitInMemory(programFilePath)[0] ){
-            // Add the process to memory
+        if( (boolean) canFitInMemory[0] ){
+            // Allocate block of memory for Process
             p.getPCB().setLowerMemoryBoundary( (Integer) canFitInMemory[1] );
             p.getPCB().setUpperMemoryBoundary( (Integer) canFitInMemory[2] );
-            MyOS.getMemory().allocateMemoryPartition(p, (Integer) canFitInMemory[1], (Integer) canFitInMemory[2]);
-            MyOS.getScheduler().getInMemoryProcesses().add(p);
+            Kernel.getMemory().allocateMemoryPartition(p, (Integer) canFitInMemory[1], (Integer) canFitInMemory[2]);
+            Kernel.getScheduler().getInMemoryProcesses().add(p);
             System.out.println("Process added to memory");
 
-            // Finalize process creation ???
+            // Finalize Process Creation ???
             //
             System.out.println("Process created successfully \n");
         }
-        else{
-            // retrieve a not running process from the Scheduler's processes ArrrayList,
+
+        else {
+            // retrieve a not running process from the Scheduler's processes ArrayList
             // move this process to disk (serialize)
             // remove this process from memory (set occupied to false)
             // compactMemory();
@@ -81,20 +165,49 @@ public class Kernel {
         }
     }
 
-    public void readyProcess(ProcessMemoryImage p){
+    static class Counter implements Runnable {
+        private float count = 0;
 
-    }
+        @Override
+        public void run() {}
 
-    public void runProcess(ProcessMemoryImage p){
+        public void run(int[] arrivalTimes, String[] arrivalLocations) {
+            int i = 0;
+            List<Thread> threads = new ArrayList<>();
 
-    }
-
-    public void blockProcess(ProcessMemoryImage p, Mutex m){
-
-    }
-
-    public void terminateProcess(ProcessMemoryImage p){
-
+            while (true) {
+                // MyOS.getScheduler().executeRoundRobin();
+                synchronized (this) {
+                    while(i < arrivalTimes.length && Math.round(count * 10.0) / 10.0 == arrivalTimes[i]){
+                        System.out.println("Process " + arrivalLocations[i] + " arrived @ Time = " + count);
+                        final int locationIndex = i;
+                        Thread thread = new Thread(() -> kernel.createNewProcess(arrivalLocations[locationIndex]));
+                        thread.start();
+                        threads.add(thread);
+                        i++;
+                    }
+                    if(i == arrivalTimes.length) {
+                        // Wait for all threads to finish
+                        for (Thread thread : threads) {
+                            try {
+                                thread.join();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        System.out.println("All processes successfully created! \n");
+                        System.out.println(Kernel.getMemory());
+                        return;
+                    }
+                    count += 0.2;
+                }
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
 }
