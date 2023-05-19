@@ -63,11 +63,11 @@ public class Scheduler {
 
 
     public synchronized void printReadyQueue(){
-        System.out.println("Ready Queue (First to last): " + readyQueue);
+        System.out.println("Ready Queue (Process IDs: First to last): " + readyQueue);
     }
 
     public synchronized void printBlockedQueue(){
-        System.out.println("Blocked Queue (First to last): " + blockedQueue);
+        System.out.println("Blocked Queue (Process IDs: First to last): " + blockedQueue);
     }
 
     public synchronized void printCurrentRunningProcess(){
