@@ -39,6 +39,7 @@ public class Interpreter {
             File fileObj = new File(filePath);
             Scanner myReader = new Scanner(fileObj);
             while (myReader.hasNextLine()) {
+                myReader.nextLine();
                 linesOfCode++;
             }
             myReader.close();
