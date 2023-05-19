@@ -48,24 +48,50 @@ public class Memory {
         return sb.toString();
     }
 
+    public synchronized boolean isOccupied(int address) {return occupied[address];}
+
     public synchronized MemoryWord readMemoryWord(int address) {
         return memory[address];
     }
 
     public synchronized void writeMemoryWord(int address, MemoryWord word) {
         memory[address] = word;
+    }
+
+//  Empties memory word
+    public synchronized void clearMemoryWord(int address){
+        memory[address] = null;
+    }
+
+//  Marks memory word as reserved/occupied
+    public synchronized void allocateMemoryWord(int address){
         occupied[address] = true;
     }
 
-    public synchronized boolean isOccupied(int address) {
-        return occupied[address];
+//  Marks memory word as free/non-reserved
+    public synchronized void deallocateMemoryWord(int address){
+        occupied[address] = false;
     }
 
-//  Allocates memory block for a process
-    public synchronized void allocateMemoryPartition(ProcessMemoryImage p, int lowerMemoryBound, int upperMemoryBound) {
+// Marks memory block as reserved/occupied
+    public synchronized void allocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
+        for (int i = lowerMemoryBound; i < upperMemoryBound; i++){
+            allocateMemoryWord(i);
+        }
+    }
+
+//  Marks memory block as free/non-reserved
+    public synchronized void deallocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
+        for (int i = lowerMemoryBound; i < upperMemoryBound; i++){
+            deallocateMemoryWord(i);
+        }
+    }
+
+//  Fills memory block with a process
+    public synchronized void fillMemoryPartition(ProcessMemoryImage p, int lowerMemoryBound, int upperMemoryBound) {
         int adr = lowerMemoryBound;
 
-//      Allocate space for PCB
+//      Fill PCB space
         writeMemoryWord(adr, new MemoryWord("PROCESS_ID", p.getPCB().getProcessID()) );
         writeMemoryWord(adr + 1, new MemoryWord("PROCESS_STATE", p.getPCB().getProcessState()) );
         writeMemoryWord(adr + 2, new MemoryWord("PROGRAM_COUNTER", p.getPCB().getProgramCounter()) );
@@ -73,32 +99,34 @@ public class Memory {
         writeMemoryWord(adr + 4, new MemoryWord("UPPER_MEM_BOUND", upperMemoryBound) );
         writeMemoryWord(adr + 5, new MemoryWord("TEMP_LOCATION", p.getPCB().getTempLocation()==null?"---":p.getPCB().getTempLocation()) );
 
-//      Allocate space for Data/Variables (starts as empty but fills up with data when process starts executing and initializing its own variables)
+//      Fill data space ('---' means reserved, acts as placeholder until actual values are added when the process starts executing)
         writeMemoryWord(adr + 6, new MemoryWord("---", "---"));
         writeMemoryWord(adr + 7, new MemoryWord("---", "---"));
         writeMemoryWord(adr + 8, new MemoryWord("---", "---"));
 
-//      Allocate space for Instructions
+//      Fill instructions space
         int j = adr + 9;
         for(String instruction : p.getInstructions()){
             writeMemoryWord(j, new MemoryWord("INSTRUCTION", instruction));
             j++;
         }
-
     }
 
-//  Deallocates memory block and empties it
-    public synchronized void deallocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
+//  Empties memory block
+    public synchronized void clearMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound; i++){
-            memory[i] = null;
-            occupied[i] = false;
+            clearMemoryWord(i);
         }
     }
 
-//  Dynamic memory partitioning, moves everything in the memory to the top to make space below
+//  Moves everything in the memory to the top to make space below.
+//  Uses dynamic memory partitioning.
     public synchronized void compactMemory(){
         deallocateMemoryPartition(0,39);
         //Check on scheduler to see which processes to keep in memory, loading them in order
+
+
+
     }
 
 }
