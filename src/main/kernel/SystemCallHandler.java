@@ -1,40 +1,37 @@
 package main.kernel;
 
 public class SystemCallHandler {
-    /* System calls are the process’s way of requesting a service from the OS.
+    /** System calls are the process’s way of requesting a service from the OS.
      * In order for a process to be able to use any of the available hardware, it makes a request,
        system call, to the operating system.
     */
     public SystemCallHandler(){}
 
-    // Read the data of any file from the disk
-    public synchronized void readDataFromFileOnDisk(){
+
+    public synchronized void readDataFromFileOnDisk(String fileName){
 
     }
 
-    // Write text output to a file in the disk
-    public synchronized void writeDataToFileOnDisk(){
+    public synchronized void writeDataToFileOnDisk(String fileName, String data){
+        // .. the program writes the data to the file. Assume that the file doesn't exist and should always be created.
+        //          --> generate file with data and put it src/generated_files/
+    }
+
+    public synchronized void printToScreen(String data){
 
     }
 
-    // Print data on the screen
-    public synchronized void printToScreen(){
-
+    public synchronized String takeInputFromUser(){
+        return null;
     }
 
-    // Take text input from the user
-    public synchronized void takeInputFromUser(){
-
-    }
-
-    // Reading data from memory
     public synchronized void readDataFromMemory(){
 
     }
 
-    // Writing data to memory
-    public synchronized void writeDataToMemory(){
-
+    public synchronized void writeDataToMemory(String variableName, String variableData, int currentRunningProcessID){
+        // take as input variableName and variableData and searches for first reserved spot (marked with "---") in process memory data to put this variable
+        // memory.writeword
     }
 
 

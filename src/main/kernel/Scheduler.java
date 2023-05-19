@@ -29,12 +29,8 @@ public class Scheduler {
         //this.timer = 0;
     }
 
-    public synchronized ArrayList<ProcessMemoryImage> getArrivedProcesses() {
-        return arrivedProcessMemoryImages;
-    }
-    public synchronized ProcessMemoryImage getCurrentRunningProcess() {
-        return currentRunningProcessMemoryImage;
-    }
+    public synchronized ArrayList<ProcessMemoryImage> getArrivedProcessMemoryImages() {return arrivedProcessMemoryImages;}
+    public synchronized ProcessMemoryImage getCurrentRunningProcessMemoryImage() {return currentRunningProcessMemoryImage;}
     public synchronized ArrayList<ProcessMemoryImage> getInMemoryProcesses() {
         return inMemoryProcessMemoryImages;
     }
@@ -78,12 +74,12 @@ public class Scheduler {
     // Serialize Process Memory Image
     public synchronized void swapOutToDisk(ProcessMemoryImage p){
         try {
-            FileOutputStream fileOut = new FileOutputStream("src/temp/" + p.getPCB().getProcessID() + ".txt");
+            FileOutputStream fileOut = new FileOutputStream("src/temp/" + p.getPCB().getProcessID() + ".ser");
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             out.writeObject(p);
             out.close();
             fileOut.close();
-            System.out.printf("Serialized data is saved in src/temp/" + p.getPCB().getProcessID() + ".txt");
+            System.out.printf("Serialized data is saved in src/temp/" + p.getPCB().getProcessID() + ".ser");
         } catch (IOException i) {
             i.printStackTrace();
         }
@@ -160,9 +156,10 @@ public class Scheduler {
             // Decode & execute
             // SHOULD HANDLE THIS DIFFERENTLY!!!!!
             try {
-                Kernel.getInterpreter().interpret( instruction );
+                Kernel.getInterpreter().interpret( instruction, currentRunningProcessMemoryImage );
             } catch (InvalidInstructionException e) {
-                throw new RuntimeException(e);
+                // What to do if instruction has invalid syntax? Kill process?
+                //
             }
 
             // Increment PC (We increment after executing to make sure that the instruction was executed successfully, so we can move on to the next)

@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Kernel {
-    private static Kernel kernel; // instance of kernel
-
     private static Mutex userInputMutex;
     private static Mutex userOutputMutex;
     private static Mutex fileMutex;
@@ -20,14 +18,16 @@ public class Kernel {
     private static Memory memory;
     private static SystemCallHandler systemCallHandler;
 
+    // Instance of kernel to be used internally
+    private static Kernel kernel;
+
     public static Mutex getUserInputMutex() {return userInputMutex;}
     public static Mutex getUserOutputMutex() {return userOutputMutex;}
     public static Mutex getFileMutex() {return fileMutex;}
     public static Interpreter getInterpreter() {return interpreter;}
     public static Scheduler getScheduler() {return scheduler;}
     public static Memory getMemory() {return memory;}
-    public static Kernel getKernel() {return kernel;}
-    public static SystemCallHandler getSystemCall() {return systemCallHandler;}
+    public static SystemCallHandler getSystemCallHandler() {return systemCallHandler;}
 
     public Kernel(int roundRobinTimeSlice){
         userInputMutex = new Mutex();
@@ -149,7 +149,7 @@ public class Kernel {
             Kernel.getScheduler().getInMemoryProcesses().add(p);
             System.out.println("Process added to memory");
 
-            // Finalize Process Creation ???
+            // Finalize Process creation ???
             //
             System.out.println("Process created successfully \n");
         }
