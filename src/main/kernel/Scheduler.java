@@ -8,52 +8,65 @@ import java.io.*;
 import java.util.*;
 
 public class Scheduler {
-    private final ArrayList<ProcessMemoryImage> arrivedProcessMemoryImages;
-    private final ArrayList<Integer> burstTimes;
+    private final ArrayList<ProcessMemoryImage> primaryProcessTable;
+    private final ArrayList<Integer> totalBurstTimes;
     private final ArrayList<ProcessMemoryImage> inMemoryProcessMemoryImages;
     private final Queue<ProcessMemoryImage> readyQueue;
     private final Queue<ProcessMemoryImage> blockedQueue;
-    private int nextProcessID;
     private ProcessMemoryImage currentRunningProcessMemoryImage;
-    private final int roundRobinTimeSlice;
-    //private int timer;
+    private final int instructionsPerTimeSlice;
+    private int maximumUsedProcessID;
 
-    public Scheduler(int roundRobinTimeSlice){
-        this.arrivedProcessMemoryImages = new ArrayList<>();
-        this.burstTimes = new ArrayList<>();
+    public Scheduler(int instructionsPerTimeSlice){
+        this.primaryProcessTable = new ArrayList<>();
+        this.totalBurstTimes = new ArrayList<>();
         this.inMemoryProcessMemoryImages = new ArrayList<>();
         this.readyQueue = new ArrayDeque<>();
         this.blockedQueue = new ArrayDeque<>();
-        this.nextProcessID = 0;
-        this.roundRobinTimeSlice = roundRobinTimeSlice;
-        //this.timer = 0;
+        this.instructionsPerTimeSlice = instructionsPerTimeSlice;
+        this.maximumUsedProcessID = -1; // First arrived process will be given ID -1 + 1 = 0
     }
 
-    public synchronized ArrayList<ProcessMemoryImage> getArrivedProcessMemoryImages() {return arrivedProcessMemoryImages;}
+    public synchronized ArrayList<ProcessMemoryImage> getPrimaryProcessTable() {return primaryProcessTable;}
     public synchronized ProcessMemoryImage getCurrentRunningProcessMemoryImage() {return currentRunningProcessMemoryImage;}
-    public synchronized ArrayList<ProcessMemoryImage> getInMemoryProcesses() {
-        return inMemoryProcessMemoryImages;
-    }
+    public synchronized ArrayList<ProcessMemoryImage> getInMemoryProcesses() {return inMemoryProcessMemoryImages;}
     public synchronized Queue<ProcessMemoryImage> getReadyQueue() {
         return readyQueue;
     }
     public synchronized Queue<ProcessMemoryImage> getBlockedQueue() {
         return blockedQueue;
     }
+
     public synchronized int getNextProcessID() {
-        int temp = nextProcessID;
-        nextProcessID++;
-        return temp;
+        maximumUsedProcessID++;
+
+        final int MAX_POSSIBLE_PID = 100;
+        if(maximumUsedProcessID > MAX_POSSIBLE_PID){
+//          Reset PID to 0 if it crosses Max Possible PID
+            maximumUsedProcessID = 0;
+//          After resetting to 0, we have to make sure that
+//          there is no other existing process with ID 0.
+//          Otherwise, find the first unique PID number that isn't
+//          acquired by any other process.
+            for(int i=0; i<101; i++) {
+                for (ProcessMemoryImage p : primaryProcessTable) {
+                    if (i != p.getPCB().getProcessID())
+                        return i;
+                    i++;
+                }
+            }
+
+        }
+        return maximumUsedProcessID;
     }
 
-//  Add process to arrived & change its state from NEW to READY
-    public synchronized void addArrivedProcess(ProcessMemoryImage p){
-        this.arrivedProcessMemoryImages.add(p);
+    public synchronized void addArrivedProcess(ProcessMemoryImage p) {
+        this.primaryProcessTable.add(p);
     }
 
 //  Add burst time corresponding to arrived process
-    public synchronized void addBurstTime(int linesOfCode){
-        this.burstTimes.add(linesOfCode);
+    public synchronized void addBurstTime(int linesOfCode) {
+        this.totalBurstTimes.add(linesOfCode);
     }
 
     public synchronized void addToReadyQueue(ProcessMemoryImage p) {
@@ -61,13 +74,12 @@ public class Scheduler {
         p.getPCB().setProcessState(ProcessState.READY);
     }
 
-
     public synchronized void printReadyQueue(){
-        System.out.println("Ready Queue (Process IDs: First to last): " + readyQueue);
+        System.out.println("Ready Queue (PIDs): FRONT -> "  + readyQueue);
     }
 
     public synchronized void printBlockedQueue(){
-        System.out.println("Blocked Queue (Process IDs: First to last): " + blockedQueue);
+        System.out.println("Blocked Queue (PIDs): FRONT -> " + blockedQueue);
     }
 
     public synchronized void printCurrentRunningProcess(){
@@ -130,7 +142,7 @@ public class Scheduler {
         int delay = 0;
         if(currentRunningProcessMemoryImage == null) {
             assignNewRunningProcess();
-            delay = roundRobinTimeSlice * 1000;
+            delay = instructionsPerTimeSlice * 1000;
         }
         new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -143,7 +155,7 @@ public class Scheduler {
             public boolean cancel() {
                 return super.cancel();
             }
-        }, delay, roundRobinTimeSlice * 1000);
+        }, delay, instructionsPerTimeSlice * 1000);
 
 
 
