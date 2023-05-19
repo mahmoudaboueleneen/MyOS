@@ -8,6 +8,7 @@ import main.elements.Mutex;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.*;
 
 public class Kernel {
     private static Mutex userInputMutex;
@@ -43,7 +44,7 @@ public class Kernel {
         int INSTRUCTIONS_PER_TIME_SLICE = 2;
         System.out.print("Instructions per time slice:" + INSTRUCTIONS_PER_TIME_SLICE + "\n");
 
-        int[] arrivalTimes = {0,1,4};
+        float[] arrivalTimes = {0,1,4};
         String[] arrivalLocations = {"src/program_files/Program_1.txt",
                                      "src/program_files/Program_2.txt",
                                      "src/program_files/Program_3.txt"
@@ -63,7 +64,7 @@ public class Kernel {
         System.out.print("Enter the instructions per time slice (round robin): \n");
         instructionsPerTimeSlice = inp.nextInt();
 
-        int[] arrivalTimes = new int[3];
+        float[] arrivalTimes = new float[3];
         String[] arrivalLocations = {"src/program_files/Program_1.txt",
                                      "src/program_files/Program_2.txt",
                                      "src/program_files/Program_3.txt"
@@ -78,7 +79,7 @@ public class Kernel {
         for (int i = 0; i < arrivalTimes.length - 1; i++) {
             for (int j = 0; j < arrivalTimes.length - i - 1; j++) {
                 if (arrivalTimes[j] > arrivalTimes[j + 1]) {
-                    int temp = arrivalTimes[j];
+                    float temp = arrivalTimes[j];
                     arrivalTimes[j] = arrivalTimes[j + 1];
                     arrivalTimes[j + 1] = temp;
 
@@ -162,31 +163,37 @@ public class Kernel {
              * keep removing and reorganizing until space is found
              * move our new process to memory
              */
+
+            System.out.println("Process added to memory");
+
+//          Finalize Process creation ???
+            //
+            System.out.println("Process created successfully \n");
         }
     }
 
-    static class Counter implements Runnable {
+    static class Counter {
         private float count = 0;
 
-        @Override
-        public void run() {}
-
-        public void run(int[] arrivalTimes, String[] arrivalLocations) {
-            int i = 0;
+        public void run(float[] arrivalTimes, String[] arrivalLocations) {
+            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3);
+            final int[] i = {0};
             List<Thread> threads = new ArrayList<>();
 
             while (true) {
-                // MyOS.getScheduler().executeRoundRobin();
                 synchronized (this) {
-                    while(i < arrivalTimes.length && Math.round(count * 10.0) / 10.0 == arrivalTimes[i]){
-                        System.out.println("Process " + arrivalLocations[i] + " arrived @ Time = " + count);
-                        final int locationIndex = i;
+                    float round = (float) ( Math.round(count * 10.0) / 10.0);
+                    while (i[0] < arrivalTimes.length && round == arrivalTimes[i[0]]) {
+                        System.out.println("Process " + arrivalLocations[i[0]]+ " arrived @ Time = " + count);
+                        final int locationIndex = i[0];
                         Thread thread = new Thread(() -> kernel.createNewProcess(arrivalLocations[locationIndex]));
                         thread.start();
                         threads.add(thread);
-                        i++;
+
+                        //scheduler.submit(() -> kernel.createNewProcess(arrivalLocations[locationIndex]));
+                        i[0]++;
                     }
-                    if(i == arrivalTimes.length) {
+                    if(i[0] == arrivalTimes.length) {
 //                      Wait for all threads to finish
                         for (Thread thread : threads) {
                             try {
@@ -197,6 +204,8 @@ public class Kernel {
                         }
                         System.out.println("All processes successfully created! \n");
                         System.out.println(Kernel.getMemory());
+                        Kernel.getScheduler().printReadyQueue();
+                        Kernel.getScheduler().printBlockedQueue();
                         return;
                     }
                     count += 0.2;
