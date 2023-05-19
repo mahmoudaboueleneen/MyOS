@@ -8,7 +8,6 @@ public class MemoryWord {
         this.variableName = variableName;
         this.variableData = variableData;
     }
-
     public synchronized String getVariableName() {return variableName;}
     public synchronized Object getVariableData() {return variableData;}
 }

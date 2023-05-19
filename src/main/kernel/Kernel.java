@@ -18,7 +18,7 @@ public class Kernel {
     private static Memory memory;
     private static SystemCallHandler systemCallHandler;
 
-    // Instance of kernel to be used internally
+//  Instance of kernel to be used internally
     private static Kernel kernel;
 
     public static Mutex getUserInputMutex() {return userInputMutex;}
@@ -50,7 +50,7 @@ public class Kernel {
         };
         kernel = new Kernel(2);
 
-        // Beginning counter representing time, incrementing timer until the first process scheduled to arrive arrives
+//      Beginning counter representing time, incrementing timer until the first process scheduled to arrive arrives
         Counter counter = new Counter();
         System.out.println("Initializing System Timer.. \n");
         counter.run(arrivalTimes, arrivalLocations);
@@ -74,7 +74,7 @@ public class Kernel {
         for(int i = 0; i < 3; i++)
             arrivalTimes[i] = (inp.nextInt());
 
-        // Sort arrival times and arrived processes in order
+//      Sort arrival times and arrived processes in order
         for (int i = 0; i < arrivalTimes.length - 1; i++) {
             for (int j = 0; j < arrivalTimes.length - i - 1; j++) {
                 if (arrivalTimes[j] > arrivalTimes[j + 1]) {
@@ -89,7 +89,7 @@ public class Kernel {
             }
         }
 
-        // Beginning counter representing time, incrementing timer until the first process scheduled to arrive arrives
+//      Beginning counter representing time, incrementing timer until the first process scheduled to arrive arrives
         Counter counter = new Counter();
         System.out.println("Initializing System Timer.. \n");
         counter.run(arrivalTimes, arrivalLocations);
@@ -103,7 +103,7 @@ public class Kernel {
         int DATA_VARIABLES = 3;
         int processMemorySize = PCB_INSTANCE_VARIABLES + DATA_VARIABLES + linesOfCode;
 
-        // Search for space in the memory
+//      Search for space in the memory
         int lowerMemoryBound = 0;
         int upperMemoryBound;
         boolean[] occupied = Kernel.getMemory().getOccupied();
@@ -115,11 +115,11 @@ public class Kernel {
             }
         }
 
-        // Check if process can fit in the found memory space
+//      Check if process can fit in the found memory space
         if(lowerMemoryBound + processMemorySize > 40)
             canFit = false;
 
-        // Return canFit flag + (possible) assigned memory boundaries for the process
+//      Return canFit flag + (possible) assigned memory boundaries for the process
         upperMemoryBound = lowerMemoryBound + processMemorySize - 1;
         Object[] result = new Object[4];
         result[0] = canFit;
@@ -131,37 +131,37 @@ public class Kernel {
     }
 
     public synchronized void createNewProcess(String programFilePath) {
-        // Create ProcessMemoryImage and arrive at Scheduler
+//      Create ProcessMemoryImage and arrive at Scheduler
         Object[] canFitInMemory = canFitInMemory(programFilePath);
         ProcessMemoryImage p = new ProcessMemoryImage( (Integer) canFitInMemory[1],
                                                        (Integer) canFitInMemory[2],
-                                                       (Integer) canFitInMemory[3],
                                                        Kernel.getInterpreter().getInstructionsFromFile(programFilePath) );
         Kernel.getScheduler().addArrivedProcess(p);
         Kernel.getScheduler().addToReadyQueue(p);
         Kernel.getScheduler().addBurstTime( (Integer) canFitInMemory[3] );
 
         if( (boolean) canFitInMemory[0] ){
-            // Allocate block of memory for Process
+//          Allocate block of memory for Process
             p.getPCB().setLowerMemoryBoundary( (Integer) canFitInMemory[1] );
             p.getPCB().setUpperMemoryBoundary( (Integer) canFitInMemory[2] );
             Kernel.getMemory().allocateMemoryPartition(p, (Integer) canFitInMemory[1], (Integer) canFitInMemory[2]);
             Kernel.getScheduler().getInMemoryProcesses().add(p);
             System.out.println("Process added to memory");
 
-            // Finalize Process creation ???
+//          Finalize Process creation ???
             //
             System.out.println("Process created successfully \n");
         }
 
         else {
-            // retrieve a not running process from the Scheduler's processes ArrayList
-            // move this process to disk (serialize)
-            // remove this process from memory (set occupied to false)
-            // compactMemory();
-            // check for space again
-            // keep removing and reorganizing until space is found
-            // move our new process to memory
+            /* retrieve a not running process from the Scheduler's processes ArrayList
+             * move this process to disk (serialize)
+             * remove this process from memory (set occupied to false)
+             * compactMemory();
+             * check for space again
+             * keep removing and reorganizing until space is found
+             * move our new process to memory
+             */
         }
     }
 
@@ -187,7 +187,7 @@ public class Kernel {
                         i++;
                     }
                     if(i == arrivalTimes.length) {
-                        // Wait for all threads to finish
+//                      Wait for all threads to finish
                         for (Thread thread : threads) {
                             try {
                                 thread.join();

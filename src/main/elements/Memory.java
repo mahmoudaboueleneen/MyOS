@@ -61,11 +61,11 @@ public class Memory {
         return occupied[address];
     }
 
-    // Allocates memory block for a process
+//  Allocates memory block for a process
     public synchronized void allocateMemoryPartition(ProcessMemoryImage p, int lowerMemoryBound, int upperMemoryBound) {
         int adr = lowerMemoryBound;
 
-        // Allocate space for PCB
+//      Allocate space for PCB
         writeMemoryWord(adr, new MemoryWord("PROCESS_ID", p.getPCB().getProcessID()) );
         writeMemoryWord(adr + 1, new MemoryWord("PROCESS_STATE", p.getPCB().getProcessState()) );
         writeMemoryWord(adr + 2, new MemoryWord("PROGRAM_COUNTER", p.getPCB().getProgramCounter()) );
@@ -73,12 +73,12 @@ public class Memory {
         writeMemoryWord(adr + 4, new MemoryWord("UPPER_MEM_BOUND", upperMemoryBound) );
         writeMemoryWord(adr + 5, new MemoryWord("TEMP_LOCATION", p.getPCB().getTempLocation()==null?"---":p.getPCB().getTempLocation()) );
 
-        // Allocate space for Data/Variables (starts as empty but fills up with data when process starts executing and initializing its own variables)
+//      Allocate space for Data/Variables (starts as empty but fills up with data when process starts executing and initializing its own variables)
         writeMemoryWord(adr + 6, new MemoryWord("---", "---"));
         writeMemoryWord(adr + 7, new MemoryWord("---", "---"));
         writeMemoryWord(adr + 8, new MemoryWord("---", "---"));
 
-        // Allocate space for Instructions
+//      Allocate space for Instructions
         int j = adr + 9;
         for(String instruction : p.getInstructions()){
             writeMemoryWord(j, new MemoryWord("INSTRUCTION", instruction));
@@ -87,7 +87,7 @@ public class Memory {
 
     }
 
-    // Deallocates memory block and empties it
+//  Deallocates memory block and empties it
     public synchronized void deallocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound; i++){
             memory[i] = null;
@@ -95,12 +95,10 @@ public class Memory {
         }
     }
 
-    // Dynamic memory partitioning, moves everything in the memory to the top to make space below
+//  Dynamic memory partitioning, moves everything in the memory to the top to make space below
     public synchronized void compactMemory(){
         deallocateMemoryPartition(0,39);
-
-        // Check on scheduler to see which processes to keep in memory, loading them in order
-
+        //Check on scheduler to see which processes to keep in memory, loading them in order
     }
 
 }

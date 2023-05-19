@@ -46,12 +46,12 @@ public class Scheduler {
         return temp;
     }
 
-    // Add process to arrived & change its state from NEW to READY
+//  Add process to arrived & change its state from NEW to READY
     public synchronized void addArrivedProcess(ProcessMemoryImage p){
         this.arrivedProcessMemoryImages.add(p);
     }
 
-    // Add burst time corresponding to arrived process
+//  Add burst time corresponding to arrived process
     public synchronized void addBurstTime(int linesOfCode){
         this.burstTimes.add(linesOfCode);
     }
@@ -62,16 +62,20 @@ public class Scheduler {
     }
 
 
-//    public void printQueues(){
-//        System.out.println("Ready Queue: {");
-//        Iterator<Process> iterator = readyQueue.iterator();
-//        while (iterator.hasNext()) {
-//            int processID = iterator.next().getPCB().getProcessID();
-//            System.out.println(processID + " ");
-//        }
-//    }
+    public synchronized void printQueues(){
+        System.out.println("Ready Queue: {");
+        Iterator<ProcessMemoryImage> iterator = readyQueue.iterator();
+        while (iterator.hasNext()) {
+            int processID = iterator.next().getPCB().getProcessID();
+            System.out.println(processID + " ");
+        }
+    }
 
-    // Serialize Process Memory Image
+    public synchronized void printCurrentRunningProcess(){
+        System.out.println("Current Running Process(ID): " + currentRunningProcessMemoryImage);
+    }
+
+//  Serialize Process Memory Image object
     public synchronized void swapOutToDisk(ProcessMemoryImage p){
         try {
             FileOutputStream fileOut = new FileOutputStream("src/temp/" + p.getPCB().getProcessID() + ".ser");
@@ -85,7 +89,7 @@ public class Scheduler {
         }
     }
 
-    // Deserialize Process Memory Image
+//  Deserialize Process Memory Image object
     public synchronized ProcessMemoryImage swapInFromDisk(String location){
         ProcessMemoryImage p = null;
         try {
@@ -145,15 +149,15 @@ public class Scheduler {
 
 
 
-        // Check if process is found in memory,
-        // if found, execute.
+//      Check if process is found in memory
         if(inMemoryProcessMemoryImages.contains(currentRunningProcessMemoryImage)){
+//          Process found in memory, so execute
             // while(current process execution time < scheduler's time slice variable)
 
-            // Fetch
+//          Fetch
             String instruction = Kernel.getInterpreter().getNextProcessInstruction(currentRunningProcessMemoryImage);
 
-            // Decode & execute
+//          Decode & execute
             // SHOULD HANDLE THIS DIFFERENTLY!!!!!
             try {
                 Kernel.getInterpreter().interpret( instruction, currentRunningProcessMemoryImage );
@@ -162,12 +166,13 @@ public class Scheduler {
                 //
             }
 
-            // Increment PC (We increment after executing to make sure that the instruction was executed successfully, so we can move on to the next)
+//          Increment PC (We increment after executing to make sure that the instruction was executed successfully, so we can move on to the next)
             currentRunningProcessMemoryImage.getPCB().setProgramCounter( currentRunningProcessMemoryImage.getPCB().getProgramCounter()+1 );
 
         }
-        // else, move to memory then execute
+
         else {
+//      Process not found in memory, so move to memory THEN execute
 
         }
     }

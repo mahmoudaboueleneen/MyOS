@@ -11,7 +11,7 @@ public class Interpreter {
 
     public Interpreter(){}
 
-    // Reads full program file and returns String[] of the instructions
+//  Reads full program file and returns String[] of the instructions
     public synchronized String[] getInstructionsFromFile(String filePath){
         ArrayList<String> res = new ArrayList<>();
 
@@ -50,14 +50,14 @@ public class Interpreter {
         return linesOfCode;
     }
 
-    // Fetch next instruction to be executed
+//  Fetch next instruction to be executed
     public synchronized String getNextProcessInstruction(ProcessMemoryImage p){
         int base = p.getPCB().getLowerMemoryBoundary() + 8;
         int offset = p.getPCB().getProgramCounter();
         return (String) Kernel.getMemory().readMemoryWord(base+offset).getVariableData();
     }
 
-    // Decode & execute instruction
+//  Decode & execute instruction
     public synchronized void interpret(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException {
         // Get all words in the instruction (separated by spaces)
         String[] words = instruction.split(" ");
@@ -130,6 +130,7 @@ public class Interpreter {
 
     }
 
+//  Helper
     public static boolean isInteger(String s) {
         try {
             Integer.parseInt(s);
