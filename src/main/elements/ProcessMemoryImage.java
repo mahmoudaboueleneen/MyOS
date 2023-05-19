@@ -3,12 +3,12 @@ package main.elements;
 import java.io.Serializable;
 
 public class ProcessMemoryImage implements Serializable {
-    private final ProcessControlBlock processControlBlock;
+    private ProcessControlBlock processControlBlock;
     private final MemoryWord[] variables;
     private final String[] instructions;
 
     public ProcessMemoryImage(int lowerMemoryBoundary, int upperMemoryBoundary, String[] instructions){
-        this.processControlBlock = new ProcessControlBlock(lowerMemoryBoundary, upperMemoryBoundary);
+        this.processControlBlock = null;
         this.variables = new MemoryWord[3];
         this.instructions = instructions;
     }
@@ -18,6 +18,7 @@ public class ProcessMemoryImage implements Serializable {
     }
     public synchronized MemoryWord[] getVariables() {return variables;}
     public synchronized String[] getInstructions() {return instructions;}
+    public void setProcessControlBlock(ProcessControlBlock processControlBlock) {this.processControlBlock = processControlBlock;}
 
     public String toString(){return getPCB().getProcessID() + "";}
 }

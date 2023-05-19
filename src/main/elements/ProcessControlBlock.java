@@ -12,8 +12,8 @@ public class ProcessControlBlock implements Serializable {
         private int upperMemoryBoundary;
         private String tempLocation;
 
-        public ProcessControlBlock(int lowerMemoryBoundary, int upperMemoryBoundary){
-            this.processID = Kernel.getScheduler().getNextProcessID();
+        public ProcessControlBlock(int processID, int lowerMemoryBoundary, int upperMemoryBoundary){
+            this.processID = processID;
             this.processState = ProcessState.NEW;
             this.programCounter = 0;
             this.lowerMemoryBoundary = lowerMemoryBoundary;
