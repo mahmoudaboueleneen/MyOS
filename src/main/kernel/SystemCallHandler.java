@@ -1,23 +1,45 @@
 package main.kernel;
 
+import main.elements.Memory;
+import main.elements.MemoryWord;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 
+//TODO: Finish all methods.
 public class SystemCallHandler {
-    /** System calls are the process’s way of requesting a service from the OS.
-     * In order for a process to be able to use any of the available hardware, it makes a request,
-       system call, to the operating system.
-    */
+
     public SystemCallHandler(){}
 
-    //TODO: Finish all methods.
-
-    public synchronized void readDataFromFileOnDisk(String fileName){
-
+    public synchronized String readDataFromFileOnDisk(String fileName){
+        StringBuilder sb = new StringBuilder();
+        try {
+            File myObj = new File("src/generated_files/"+fileName);
+            Scanner myReader = new Scanner(myObj);
+            while (myReader.hasNextLine()) {
+                String data = myReader.nextLine();
+                sb.append(data);
+            }
+            myReader.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("Error: Reading from file failed, file not found.");
+            e.printStackTrace();
+        }
+        return sb.toString();
     }
 
     public synchronized void writeDataToFileOnDisk(String fileName, String data){
-        // .. the program writes the data to the file. Assume that the file doesn't exist and should always be created.
-        //          --> generate file with data and put it src/generated_files/
+        try {
+            FileWriter myWriter = new FileWriter("src/generated_files/"+fileName);
+            myWriter.write(data);
+            myWriter.close();
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
     }
 
     public synchronized void printToScreen(String data){
@@ -30,13 +52,12 @@ public class SystemCallHandler {
         return stringInput;
     }
 
-    public synchronized void readDataFromMemory(String fileName){
-
+    public synchronized MemoryWord readDataFromMemory(int address){
+        return Kernel.getMemory().getMemory()[address];
     }
 
-    public synchronized void writeDataToMemory(String variableName, String variableData, int currentRunningProcessID){
-        // take as input variableName and variableData and searches for first reserved spot (marked with "---") in process memory data to put this variable
-        // memory.writeword
+    public synchronized void writeDataToMemory(int address, MemoryWord word){
+        Kernel.getMemory().writeMemoryWord(address, word);
     }
 
 

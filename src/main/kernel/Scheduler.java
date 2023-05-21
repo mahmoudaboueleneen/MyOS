@@ -14,7 +14,7 @@ public class Scheduler {
     private final Queue<ProcessMemoryImage> readyQueue;
     private final Queue<ProcessMemoryImage> blockedQueue;
     private ProcessMemoryImage currentRunningProcessMemoryImage;
-    private static boolean programCounterShouldBeIncremented;
+    private static int timesProgramCounterShouldBeIncremented;
     private final int instructionsPerTimeSlice;
     private int maximumUsedPID;
     private int currentInstructionCycle;
@@ -113,11 +113,15 @@ public class Scheduler {
                 catch (InvalidInstructionException e) {
                     throw new RuntimeException(e);
                 }
-                remInstructions--;
-                Kernel.incrementInstructionCycle();
 
-                if(programCounterShouldBeIncremented)
+                remInstructions--;
+
+                // Field gets incremented by the Interpreter
+                while(timesProgramCounterShouldBeIncremented > 0){
                     currProcess.incrementPC();
+                    timesProgramCounterShouldBeIncremented--;
+                }
+
                 if(currProcess.getPCB().getProcessState() == ProcessState.BLOCKED)
                     return;
             } else {
@@ -187,6 +191,7 @@ public class Scheduler {
         int upperBound = p.getPCB().getUpperMemoryBoundary();
         Kernel.getMemory().deallocateMemoryPartition(lowerBound, upperBound);
         Kernel.getMemory().clearMemoryPartition(lowerBound, upperBound);
+        inMemoryProcessMemoryImages.remove(p);
     }
 
     public synchronized void swapInFromDisk(String location, int lowerBound, int upperBound){
@@ -202,8 +207,13 @@ public class Scheduler {
         }
         p.getPCB().setTempLocation("---");
         Kernel.getMemory().allocateMemoryPartition(lowerBound, upperBound);
-        Kernel.getMemory().clearMemoryPartition(lowerBound, upperBound);
+        Kernel.getMemory().fillMemoryPartition(p, lowerBound, upperBound);
+        inMemoryProcessMemoryImages.add(p);
         //return p;
+    }
+
+    public synchronized static void incrementTimesProgramCounterShouldBeIncremented(){
+        timesProgramCounterShouldBeIncremented++;
     }
 
     private synchronized void finishCurrentRunningProcess(){
@@ -214,10 +224,6 @@ public class Scheduler {
     private synchronized void preemptCurrentRunningProcess() {
         readyQueue.add(currentRunningProcessMemoryImage);
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
-    }
-
-    public synchronized void programCounterShouldBeIncremented(){
-        programCounterShouldBeIncremented = true;
     }
 
 }

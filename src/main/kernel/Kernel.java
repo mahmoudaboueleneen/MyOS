@@ -27,7 +27,6 @@ public class Kernel {
     private static int instructionCycle;
     private static int nextArrivalTimesIndex;
 
-
     public static Mutex getUserInputMutex() {
         return userInputMutex;
     }
@@ -135,17 +134,7 @@ public class Kernel {
         sortArrivalTimesLocations();
 
         while(true) {
-            for (int i = nextArrivalTimesIndex; i < processArrivalTimes.length; i++) {
-                if (instructionCycle == processArrivalTimes[i]) {
-                    System.out.println("Process " + processArrivalLocations[i] + " arrived at time = " + processArrivalTimes[i] + " instruction(s) executed.");
-                    kernel.createNewProcess(processArrivalLocations[i]);
-                    nextArrivalTimesIndex = i + 1;
-                } else {
-                    if (nextArrivalTimesIndex > processArrivalTimes.length)
-                        allProcessesScheduledToArriveHaveArrived = true;
-                    break;
-                }
-            }
+            checkNewArrival();
 
             if (allProcessesScheduledToArriveHaveArrived) {
                 System.out.println("\n**********************************************\n");
@@ -209,7 +198,6 @@ public class Kernel {
     }
 
     public static void sortArrivalTimesLocations(){
-
         for (int i=0; i<processArrivalTimes.length-1; i++) {
             for (int j=0; j<processArrivalTimes.length-i-1; j++) {
                 if (processArrivalTimes[j] > processArrivalTimes[j+1]) {
@@ -223,7 +211,20 @@ public class Kernel {
                 }
             }
         }
+    }
 
+    public static void checkNewArrival(){
+        for (int i = nextArrivalTimesIndex; i < processArrivalTimes.length; i++) {
+            if (instructionCycle == processArrivalTimes[i]) {
+                System.out.println("Process " + processArrivalLocations[i] + " arrived at time = " + processArrivalTimes[i] + " instruction(s) executed.");
+                kernel.createNewProcess(processArrivalLocations[i]);
+                nextArrivalTimesIndex = i + 1;
+            } else {
+                if (nextArrivalTimesIndex > processArrivalTimes.length)
+                    allProcessesScheduledToArriveHaveArrived = true;
+                break;
+            }
+        }
     }
 
     public static void incrementInstructionCycle(){
