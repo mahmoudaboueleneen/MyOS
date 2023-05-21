@@ -9,12 +9,8 @@ import java.util.Scanner;
 
 public class Interpreter {
 
-    public Interpreter(){}
-
-//  Reads full program file and returns String[] of the instructions
     public synchronized String[] getInstructionsFromFile(String filePath){
         ArrayList<String> res = new ArrayList<>();
-
         try {
             File fileObj = new File(filePath);
             Scanner myReader = new Scanner(fileObj);
@@ -28,13 +24,11 @@ public class Interpreter {
             System.out.println("Error: File not found, exiting.");
             e.printStackTrace();
         }
-
         return res.toArray(new String[0]);
     }
 
     public synchronized int countFileLinesOfCode(String filePath){
         int linesOfCode = 0;
-
         try {
             File fileObj = new File(filePath);
             Scanner myReader = new Scanner(fileObj);
@@ -51,26 +45,25 @@ public class Interpreter {
         return linesOfCode;
     }
 
-//  Fetch next instruction to be executed
     public synchronized String getNextProcessInstruction(ProcessMemoryImage p){
-        int base = p.getPCB().getLowerMemoryBoundary() + 8;
+        int base = p.getPCB().getLowerMemoryBoundary() + 9;
         int offset = p.getPCB().getProgramCounter();
         return (String) Kernel.getMemory().readMemoryWord(base+offset).getVariableData();
     }
 
-//  Decode & execute instruction
+    //TODO: Finish method:
+    // NEED TO HANDLE WHEN INPUT IS ANOTHER INSTRUCTION e.g. assign b readFile a
+    // NEED TO MAKE INTERPRETER CALL Kernel.getScheduler().programCounterShouldBeIncremented()
     public synchronized void interpret(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException {
-        // Get all words in the instruction (separated by spaces)
         String[] words = instruction.split(" ");
         String firstWord = words[0];
 
-        // NEED TO HANDLE WHEN INPUT IS ANOTHER INSTRUCTION e.g. assign b readFile a
-        //
         switch (firstWord) {
             case "print" -> {
                 if (words.length < 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, print statement requires 1 parameter");
                 Kernel.getSystemCallHandler().printToScreen(words[1]);
+                Kernel.getScheduler().programCounterShouldBeIncremented();
             }
             case "assign" -> {
                 if (words.length < 3)
@@ -81,16 +74,19 @@ public class Interpreter {
                     Kernel.getSystemCallHandler().writeDataToMemory(words[1], inp, currentRunningProcessMemoryImage.getPCB().getProcessID());
                 } else
                     Kernel.getSystemCallHandler().writeDataToMemory(words[1], words[2], currentRunningProcessMemoryImage.getPCB().getProcessID());
+                Kernel.getScheduler().programCounterShouldBeIncremented();
             }
             case "writeFile" -> {
                 if (words.length != 3)
                     throw new InvalidInstructionException("Invalid instruction syntax, writeFile statement requires 2 parameters.");
                 Kernel.getSystemCallHandler().writeDataToFileOnDisk(words[1], words[2]);
+                Kernel.getScheduler().programCounterShouldBeIncremented();
             }
             case "readFile" -> {
                 if (words.length != 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
                 Kernel.getSystemCallHandler().readDataFromFileOnDisk(words[1]);
+                Kernel.getScheduler().programCounterShouldBeIncremented();
             }
             case "printFromTo" -> {
                 if (words.length < 3)
@@ -103,6 +99,7 @@ public class Interpreter {
                     }
                 } else
                     throw new InvalidInstructionException("Invalid instruction syntax, printFromTo statement requires 2 integer numbers.");
+                Kernel.getScheduler().programCounterShouldBeIncremented();
             }
             case "semWait" -> {
                 if (words.length != 2)
@@ -114,6 +111,7 @@ public class Interpreter {
                     default ->
                             throw new InvalidInstructionException("Invalid resource name: must be userInput, userOutput or file");
                 }
+                Kernel.getScheduler().programCounterShouldBeIncremented();
             }
             case "semSignal" -> {
                 if (words.length != 2)
@@ -125,13 +123,13 @@ public class Interpreter {
                     default ->
                             throw new InvalidInstructionException("Invalid resource name: must be userInput, userOutput or file");
                 }
+                Kernel.getScheduler().programCounterShouldBeIncremented();
             }
             default -> throw new InvalidInstructionException();
         }
 
     }
 
-//  Helper
     public static boolean isInteger(String s) {
         try {
             Integer.parseInt(s);

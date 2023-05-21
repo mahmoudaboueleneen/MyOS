@@ -1,5 +1,7 @@
 package main.kernel;
 
+import java.util.Scanner;
+
 public class SystemCallHandler {
     /** System calls are the process’s way of requesting a service from the OS.
      * In order for a process to be able to use any of the available hardware, it makes a request,
@@ -7,6 +9,7 @@ public class SystemCallHandler {
     */
     public SystemCallHandler(){}
 
+    //TODO: Finish all methods.
 
     public synchronized void readDataFromFileOnDisk(String fileName){
 
@@ -18,14 +21,16 @@ public class SystemCallHandler {
     }
 
     public synchronized void printToScreen(String data){
-
+        System.out.println(data);
     }
 
     public synchronized String takeInputFromUser(){
-        return null;
+        Scanner sc = new Scanner(System.in);
+        String stringInput = sc.nextLine();
+        return stringInput;
     }
 
-    public synchronized void readDataFromMemory(){
+    public synchronized void readDataFromMemory(String fileName){
 
     }
 

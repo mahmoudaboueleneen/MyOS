@@ -8,88 +8,172 @@ import java.io.*;
 import java.util.*;
 
 public class Scheduler {
-    private final ArrayList<ProcessMemoryImage> primaryProcessTable;
-    private final ArrayList<Integer> totalBurstTimes;
+    private final ArrayList<ProcessMemoryImage> processList;
+    private final ArrayList<Integer> burstTimesList;
     private final ArrayList<ProcessMemoryImage> inMemoryProcessMemoryImages;
     private final Queue<ProcessMemoryImage> readyQueue;
     private final Queue<ProcessMemoryImage> blockedQueue;
     private ProcessMemoryImage currentRunningProcessMemoryImage;
+    private static boolean programCounterShouldBeIncremented;
     private final int instructionsPerTimeSlice;
-    private int maximumUsedProcessID;
+    private int maximumUsedPID;
+    private int currentInstructionCycle;
 
     public Scheduler(int instructionsPerTimeSlice){
-        this.primaryProcessTable = new ArrayList<>();
-        this.totalBurstTimes = new ArrayList<>();
+        this.processList = new ArrayList<>();
+        this.burstTimesList = new ArrayList<>();
         this.inMemoryProcessMemoryImages = new ArrayList<>();
         this.readyQueue = new ArrayDeque<>();
         this.blockedQueue = new ArrayDeque<>();
         this.instructionsPerTimeSlice = instructionsPerTimeSlice;
-        this.maximumUsedProcessID = -1; // First arrived process will be given ID -1 + 1 = 0
+        this.maximumUsedPID = -1; // First arrived process will be given ID -1 + 1 = 0
+        this.currentInstructionCycle = 0;
     }
 
-    public synchronized ArrayList<ProcessMemoryImage> getPrimaryProcessTable() {return primaryProcessTable;}
-    public synchronized ProcessMemoryImage getCurrentRunningProcessMemoryImage() {return currentRunningProcessMemoryImage;}
-    public synchronized ArrayList<ProcessMemoryImage> getInMemoryProcesses() {return inMemoryProcessMemoryImages;}
     public synchronized Queue<ProcessMemoryImage> getReadyQueue() {
         return readyQueue;
     }
     public synchronized Queue<ProcessMemoryImage> getBlockedQueue() {
         return blockedQueue;
     }
+    public synchronized ArrayList<ProcessMemoryImage> getInMemoryProcesses() {return inMemoryProcessMemoryImages;}
+    public int getCurrentInstructionCycle() {return currentInstructionCycle;}
 
     public synchronized int getNextProcessID() {
-        maximumUsedProcessID++;
-
         final int MAX_POSSIBLE_PID = 100;
-        if(maximumUsedProcessID > MAX_POSSIBLE_PID){
-//          Reset PID to 0 if it crosses Max Possible PID
-            maximumUsedProcessID = 0;
-//          After resetting to 0, we have to make sure that
-//          there is no other existing process with ID 0.
-//          Otherwise, find the first unique PID number that isn't
-//          acquired by any other process.
-            for(int i=0; i<101; i++) {
-                for (ProcessMemoryImage p : primaryProcessTable) {
-                    if (i != p.getPCB().getProcessID())
-                        return i;
-                    i++;
+        maximumUsedPID++;
+        if(maximumUsedPID > MAX_POSSIBLE_PID){
+            //Reset PID to 0 if it crosses Max Possible PID
+            maximumUsedPID = 0;
+            //After resetting to 0, we have to make sure that
+            //there is no other existing process with ID 0,
+            //otherwise find the first unique PID number that
+            //isn't acquired by any other process.
+            for(int currentPID=0; currentPID<101; currentPID++) {
+                for (ProcessMemoryImage p : processList) {
+                    if (currentPID != p.getPCB().getProcessID())
+                        return currentPID;
+                    currentPID++;
                 }
             }
-
         }
-        return maximumUsedProcessID;
+        return maximumUsedPID;
     }
+
 
     public synchronized void addArrivedProcess(ProcessMemoryImage p) {
-        this.primaryProcessTable.add(p);
+        this.processList.add(p);
     }
 
-//  Add burst time corresponding to arrived process
+
     public synchronized void addBurstTime(int linesOfCode) {
-        this.totalBurstTimes.add(linesOfCode);
+        this.burstTimesList.add(linesOfCode);
     }
+
 
     public synchronized void addToReadyQueue(ProcessMemoryImage p) {
         this.readyQueue.add(p);
         p.getPCB().setProcessState(ProcessState.READY);
     }
 
+
     public synchronized void printReadyQueue(){
         System.out.println("Ready Queue (PIDs): FRONT -> "  + readyQueue);
     }
+
 
     public synchronized void printBlockedQueue(){
         System.out.println("Blocked Queue (PIDs): FRONT -> " + blockedQueue);
     }
 
+
     public synchronized void printCurrentRunningProcess(){
-        System.out.println("Current Running Process(ID): " + currentRunningProcessMemoryImage);
+        System.out.println("Current Running Process(ID): " + currentRunningProcessMemoryImage.toString());
     }
 
-//  Serialize Process Memory Image object
+
+    public synchronized void executeRoundRobinTimeSlice(){
+        int remInstructions = instructionsPerTimeSlice;
+
+        if(readyQueue.isEmpty())
+            return;
+
+        assignNewRunningProcess();
+        ProcessMemoryImage currProcess = currentRunningProcessMemoryImage;
+
+        while(remInstructions > 0) {
+            if (! inMemoryProcessMemoryImages.contains(currProcess) )
+                moveCurrentRunningProcessToMemory();
+
+            if ( currProcess.hasNextInstruction() ) {
+                String instruction = Kernel.getInterpreter().getNextProcessInstruction(currProcess);
+                try {
+                    Kernel.getInterpreter().interpret(instruction, currProcess);
+                }
+                catch (InvalidInstructionException e) {
+                    throw new RuntimeException(e);
+                }
+                remInstructions--;
+                Kernel.incrementInstructionCycle();
+
+                if(programCounterShouldBeIncremented)
+                    currProcess.incrementPC();
+                if(currProcess.getPCB().getProcessState() == ProcessState.BLOCKED)
+                    return;
+            } else {
+                finishCurrentRunningProcess();
+
+                if(readyQueue.isEmpty())
+                    Kernel.allArrivedProcessesFinished();
+            }
+        }
+        preemptCurrentRunningProcess();
+    }
+
+    private synchronized void assignNewRunningProcess(){
+        currentRunningProcessMemoryImage = readyQueue.remove();
+        currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.RUNNING);
+    }
+
+    //TODO: Finish method.
+    private synchronized void moveCurrentRunningProcessToMemory() {
+        Object[] canFitWhereInMemory = Kernel.canFitWhereInMemory(currentRunningProcessMemoryImage.getInstructions().length);
+        boolean canFitInMemory = (boolean) canFitWhereInMemory[0];
+
+        if ( !canFitInMemory ) {
+            while ( !canFitInMemory ) {
+                // Kick process
+                ProcessMemoryImage processToBeSwappedOut = processToSwapOutToDisk();
+                swapOutToDisk(processToBeSwappedOut);
+
+                // Compact memory
+                Kernel.getMemory().compactMemory();
+
+                // Prepare to check again if process can fit
+                canFitWhereInMemory = Kernel.canFitWhereInMemory(currentRunningProcessMemoryImage.getInstructions().length);
+                canFitInMemory = (boolean) canFitWhereInMemory[0];
+            }
+        }
+        swapInFromDisk(currentRunningProcessMemoryImage.getPCB().getTempLocation(), (Integer) canFitWhereInMemory[1], (Integer) canFitWhereInMemory[2]);
+        inMemoryProcessMemoryImages.add(currentRunningProcessMemoryImage);
+    }
+
+    //TODO: Finish method.
+    public synchronized ProcessMemoryImage processToSwapOutToDisk(){
+        ProcessMemoryImage p = null;
+
+        if(!blockedQueue.isEmpty())
+            p = ((ArrayDeque<ProcessMemoryImage>)blockedQueue).getLast();
+        else if(!readyQueue.isEmpty())
+            p = ((ArrayDeque<ProcessMemoryImage>)readyQueue).getLast();
+
+        return p;
+    }
+
     public synchronized void swapOutToDisk(ProcessMemoryImage p){
+        String location = "src/temp/PID_" + p.getPCB().getProcessID() + ".ser";
         try {
-            FileOutputStream fileOut = new FileOutputStream("src/temp/" + p.getPCB().getProcessID() + ".ser");
+            FileOutputStream fileOut = new FileOutputStream(location);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             out.writeObject(p);
             out.close();
@@ -98,10 +182,14 @@ public class Scheduler {
         } catch (IOException i) {
             i.printStackTrace();
         }
+        p.getPCB().setTempLocation(location);
+        int lowerBound = p.getPCB().getLowerMemoryBoundary();
+        int upperBound = p.getPCB().getUpperMemoryBoundary();
+        Kernel.getMemory().deallocateMemoryPartition(lowerBound, upperBound);
+        Kernel.getMemory().clearMemoryPartition(lowerBound, upperBound);
     }
 
-//  Deserialize Process Memory Image object
-    public synchronized ProcessMemoryImage swapInFromDisk(String location){
+    public synchronized void swapInFromDisk(String location, int lowerBound, int upperBound){
         ProcessMemoryImage p = null;
         try {
             FileInputStream fileIn = new FileInputStream(location);
@@ -112,80 +200,24 @@ public class Scheduler {
         } catch (IOException | ClassNotFoundException e ) {
             e.printStackTrace();
         }
-        return p;
+        p.getPCB().setTempLocation("---");
+        Kernel.getMemory().allocateMemoryPartition(lowerBound, upperBound);
+        Kernel.getMemory().clearMemoryPartition(lowerBound, upperBound);
+        //return p;
     }
 
-    private synchronized void assignNewRunningProcess(){
-        currentRunningProcessMemoryImage = readyQueue.remove();
-        currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.RUNNING);
+    private synchronized void finishCurrentRunningProcess(){
+        currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.FINISHED);
+        processList.remove(currentRunningProcessMemoryImage);
     }
 
-    private synchronized void preemptCurrentProcess() {
+    private synchronized void preemptCurrentRunningProcess() {
         readyQueue.add(currentRunningProcessMemoryImage);
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
     }
 
-    public synchronized void executeRoundRobinWithInstructions() {
-        while(! readyQueue.isEmpty()) {
-            assignNewRunningProcess();
-            while(currentRunningProcessMemoryImage.getInstructions().length < 2) {
-
-            }
-            preemptCurrentProcess();
-        }
-    }
-
-    public synchronized void executeRoundRobin() {
-        if(readyQueue.isEmpty()) {
-            return;
-        }
-        int delay = 0;
-        if(currentRunningProcessMemoryImage == null) {
-            assignNewRunningProcess();
-            delay = instructionsPerTimeSlice * 1000;
-        }
-        new Timer().scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                preemptCurrentProcess();
-                assignNewRunningProcess();
-            }
-
-            @Override
-            public boolean cancel() {
-                return super.cancel();
-            }
-        }, delay, instructionsPerTimeSlice * 1000);
-
-
-
-
-//      Check if process is found in memory
-        if(inMemoryProcessMemoryImages.contains(currentRunningProcessMemoryImage)){
-//          Process found in memory, so execute
-            // while(current process execution time < scheduler's time slice variable)
-
-//          Fetch
-            String instruction = Kernel.getInterpreter().getNextProcessInstruction(currentRunningProcessMemoryImage);
-
-//          Decode & execute
-            // SHOULD HANDLE THIS DIFFERENTLY!!!!!
-            try {
-                Kernel.getInterpreter().interpret( instruction, currentRunningProcessMemoryImage );
-            } catch (InvalidInstructionException e) {
-                // What to do if instruction has invalid syntax? Kill process?
-                //
-            }
-
-//          Increment PC (We increment after executing to make sure that the instruction was executed successfully, so we can move on to the next)
-            currentRunningProcessMemoryImage.getPCB().setProgramCounter( currentRunningProcessMemoryImage.getPCB().getProgramCounter()+1 );
-
-        }
-
-        else {
-//      Process not found in memory, so move to memory THEN execute
-
-        }
+    public synchronized void programCounterShouldBeIncremented(){
+        programCounterShouldBeIncremented = true;
     }
 
 }
