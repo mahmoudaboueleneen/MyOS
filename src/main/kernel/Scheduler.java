@@ -3,7 +3,6 @@ package main.kernel;
 import main.elements.ProcessMemoryImage;
 import main.elements.ProcessState;
 import main.exceptions.InvalidInstructionException;
-
 import java.io.*;
 import java.util.*;
 
@@ -11,44 +10,51 @@ public class Scheduler {
     private final ArrayList<ProcessMemoryImage> processList;
     private final ArrayList<Integer> burstTimesList;
     private final ArrayList<ProcessMemoryImage> inMemoryProcessMemoryImages;
-    private final Queue<ProcessMemoryImage> readyQueue;
-    private final Queue<ProcessMemoryImage> blockedQueue;
+    private static Queue<ProcessMemoryImage> readyQueue;
+    private static Queue<ProcessMemoryImage> blockedQueue;
     private ProcessMemoryImage currentRunningProcessMemoryImage;
-    private static int timesProgramCounterShouldBeIncremented;
     private final int instructionsPerTimeSlice;
     private int maximumUsedPID;
-    private int currentInstructionCycle;
+    private static int instructionCycle;
+    private final int[] scheduledArrivalTimes;
+    private final String[] scheduledArrivalFileLocations;
+    private boolean firstArrivalsHandled;
 
-    public Scheduler(int instructionsPerTimeSlice){
+    public Scheduler(int instructionsPerTimeSlice, int[] scheduledArrivalTimes, String[] scheduledArrivalFileLocations){
         this.processList = new ArrayList<>();
         this.burstTimesList = new ArrayList<>();
         this.inMemoryProcessMemoryImages = new ArrayList<>();
-        this.readyQueue = new ArrayDeque<>();
-        this.blockedQueue = new ArrayDeque<>();
+        readyQueue = new ArrayDeque<>();
+        blockedQueue = new ArrayDeque<>();
         this.instructionsPerTimeSlice = instructionsPerTimeSlice;
         this.maximumUsedPID = -1; // First arrived process will be given ID -1 + 1 = 0
-        this.currentInstructionCycle = 0;
+        this.scheduledArrivalTimes = scheduledArrivalTimes;
+        this.scheduledArrivalFileLocations = scheduledArrivalFileLocations;
     }
 
     public synchronized Queue<ProcessMemoryImage> getReadyQueue() {
         return readyQueue;
     }
+
     public synchronized Queue<ProcessMemoryImage> getBlockedQueue() {
         return blockedQueue;
     }
-    public synchronized ArrayList<ProcessMemoryImage> getInMemoryProcesses() {return inMemoryProcessMemoryImages;}
-    public int getCurrentInstructionCycle() {return currentInstructionCycle;}
 
+    public synchronized ArrayList<ProcessMemoryImage> getInMemoryProcesses() {
+        return inMemoryProcessMemoryImages;
+    }
+
+    /*
+     * Generates new PID for a new Process.
+     * Resets that PID to 0 if it crosses Max Possible PID,
+     * and finds the first unique PID number that
+     * isn't acquired by any other process.
+     */
     public synchronized int getNextProcessID() {
         final int MAX_POSSIBLE_PID = 100;
         maximumUsedPID++;
         if(maximumUsedPID > MAX_POSSIBLE_PID){
-            //Reset PID to 0 if it crosses Max Possible PID
             maximumUsedPID = 0;
-            //After resetting to 0, we have to make sure that
-            //there is no other existing process with ID 0,
-            //otherwise find the first unique PID number that
-            //isn't acquired by any other process.
             for(int currentPID=0; currentPID<101; currentPID++) {
                 for (ProcessMemoryImage p : processList) {
                     if (currentPID != p.getPCB().getProcessID())
@@ -60,78 +66,80 @@ public class Scheduler {
         return maximumUsedPID;
     }
 
-
     public synchronized void addArrivedProcess(ProcessMemoryImage p) {
         this.processList.add(p);
     }
 
-
     public synchronized void addBurstTime(int linesOfCode) {
         this.burstTimesList.add(linesOfCode);
     }
-
 
     public synchronized void addToReadyQueue(ProcessMemoryImage p) {
         this.readyQueue.add(p);
         p.getPCB().setProcessState(ProcessState.READY);
     }
 
-
     public synchronized void printReadyQueue(){
         System.out.println("Ready Queue (PIDs): FRONT -> "  + readyQueue);
     }
-
 
     public synchronized void printBlockedQueue(){
         System.out.println("Blocked Queue (PIDs): FRONT -> " + blockedQueue);
     }
 
-
     public synchronized void printCurrentRunningProcess(){
         System.out.println("Current Running Process(ID): " + currentRunningProcessMemoryImage.toString());
     }
 
+    public static void incrementInstructionCycleAndPrintMemory(){
+        System.out.println("\n**********************************************");
+        System.out.println("Memory at inst. cycle = " + instructionCycle + " instructions executed:\n");
+        System.out.println(Kernel.getMemory());
+        instructionCycle++;
+    }
 
-    public synchronized void executeRoundRobinTimeSlice(){
+    public synchronized void executeRoundRobin(){
+        if(!firstArrivalsHandled)
+            checkAndHandleFirstProcessArrivals();
+
         int remInstructions = instructionsPerTimeSlice;
-
-        if(readyQueue.isEmpty())
+        if(readyQueue.isEmpty()){
+            finalizeOutput();
             return;
-
+        }
         assignNewRunningProcess();
         ProcessMemoryImage currProcess = currentRunningProcessMemoryImage;
 
         while(remInstructions > 0) {
-            if (! inMemoryProcessMemoryImages.contains(currProcess) )
+            if (!inMemoryProcessMemoryImages.contains(currProcess))
                 moveCurrentRunningProcessToMemory();
-
-            if ( currProcess.hasNextInstruction() ) {
+            if (currProcess.hasNextInstruction()) {
                 String instruction = Kernel.getInterpreter().getNextProcessInstruction(currProcess);
-                try {
-                    Kernel.getInterpreter().interpret(instruction, currProcess);
+                if (hasNestedInstruction(instruction)){
+                    String innerInstruction = getNestedInstruction(instruction);
+                    decodeAndExecute(innerInstruction);
+                    remInstructions--;
+                    checkAndHandleProcessArrivals();
                 }
-                catch (InvalidInstructionException e) {
-                    throw new RuntimeException(e);
-                }
+                currProcess.incrementPC();
 
+                decodeAndExecute(instruction);
                 remInstructions--;
-
-                // Field gets incremented by the Interpreter
-                while(timesProgramCounterShouldBeIncremented > 0){
-                    currProcess.incrementPC();
-                    timesProgramCounterShouldBeIncremented--;
-                }
+                checkAndHandleProcessArrivals();
 
                 if(currProcess.getPCB().getProcessState() == ProcessState.BLOCKED)
                     return;
             } else {
                 finishCurrentRunningProcess();
-
-                if(readyQueue.isEmpty())
-                    Kernel.allArrivedProcessesFinished();
+                return;
             }
         }
-        preemptCurrentRunningProcess();
+
+        // After running for a time slice, check again if the process has any instructions left.
+        if(currProcess.hasNextInstruction())
+            preemptCurrentRunningProcess();
+        else
+            finishCurrentRunningProcess();
     }
 
     private synchronized void assignNewRunningProcess(){
@@ -162,8 +170,7 @@ public class Scheduler {
         inMemoryProcessMemoryImages.add(currentRunningProcessMemoryImage);
     }
 
-    //TODO: Finish method.
-    public synchronized ProcessMemoryImage processToSwapOutToDisk(){
+    public synchronized static ProcessMemoryImage processToSwapOutToDisk(){
         ProcessMemoryImage p = null;
 
         if(!blockedQueue.isEmpty())
@@ -212,10 +219,6 @@ public class Scheduler {
         //return p;
     }
 
-    public synchronized static void incrementTimesProgramCounterShouldBeIncremented(){
-        timesProgramCounterShouldBeIncremented++;
-    }
-
     private synchronized void finishCurrentRunningProcess(){
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.FINISHED);
         processList.remove(currentRunningProcessMemoryImage);
@@ -225,5 +228,54 @@ public class Scheduler {
         readyQueue.add(currentRunningProcessMemoryImage);
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
     }
+
+    private boolean hasNestedInstruction(String instruction){
+        String[] words = instruction.split(" ");
+        return words[0].equals("assign") && words[2].equals("readFile");
+    }
+
+    private String getNestedInstruction(String fullInstruction){
+        String[] words = fullInstruction.split(" ");
+        return words[2] + " " + words[3];
+    }
+
+    private void decodeAndExecute(String instruction){
+        try {
+            Kernel.getInterpreter().interpret(instruction, currentRunningProcessMemoryImage);
+        }
+        catch (InvalidInstructionException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    private void checkAndHandleProcessArrivals(){
+        for(int time : scheduledArrivalTimes){
+            if(time == instructionCycle){
+                //Notify user and create process
+                System.out.println("Process " + scheduledArrivalTimes[time] + " arrived at time = " + scheduledArrivalTimes[time] + " instruction(s) executed.");
+                Kernel.createNewProcess(scheduledArrivalFileLocations[time]);
+            }
+        }
+    }
+
+    private void checkAndHandleFirstProcessArrivals(){
+        for(int time : scheduledArrivalTimes){
+            if(time == instructionCycle){
+                //Notify user and create process
+                System.out.println("Process " + scheduledArrivalTimes[time] + " arrived at time = " + scheduledArrivalTimes[time] + " instruction(s) executed.");
+                Kernel.createNewProcess(scheduledArrivalFileLocations[time]);
+            }
+        }
+        firstArrivalsHandled = true;
+    }
+
+    //TODO: Finish method.
+    /*
+     * Executed when the whole program is finished.
+     */
+    private void finalizeOutput(){
+        System.out.println("All processes finished.");
+    }
+
 
 }

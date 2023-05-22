@@ -19,7 +19,6 @@ public class Memory {
     @Override
     public synchronized String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("MEMORY: \n");
 
         for (int i = 0; i < memory.length; i++) {
             String varName;
@@ -107,7 +106,7 @@ public class Memory {
         }
     }
 
-//  Empties memory block
+
     public synchronized void clearMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound; i++){
             clearMemoryWord(i);
@@ -124,22 +123,6 @@ public class Memory {
 
 
     }
-
-    public synchronized int getStartingIndexOfProcessDataInMemory(ProcessMemoryImage p){
-        return 6 + getStartingIndexOfProcessInMemory(p);
-    }
-
-    //TODO: Finish method.
-    public synchronized int getStartingIndexOfProcessInMemory(ProcessMemoryImage p){
-        for(int i = 0; i < memory.length; i++){
-            //
-        }
-        return 0;
-    }
-
-
-
-
 
 }
 
