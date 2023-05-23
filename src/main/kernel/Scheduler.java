@@ -22,6 +22,7 @@ public class Scheduler {
     private final List<Integer> scheduledArrivalTimes;
     private final List<String> scheduledArrivalFileLocations;
     private boolean firstArrivalsHandled;
+    private static List<String[]> executedInnerInstructions;
 
     public Scheduler(int instructionsPerTimeSlice, List<Integer> scheduledArrivalTimes, List<String> scheduledArrivalFileLocations){
         processList = new ArrayList<>();
@@ -36,41 +37,44 @@ public class Scheduler {
     }
 
     public synchronized void executeRoundRobin(){
+        int instrsLeftInTimeSlice = instructionsPerTimeSlice;
+
         if(!firstArrivalsHandled)
             checkAndHandleFirstProcessArrivals();
-        int remInstructions = instructionsPerTimeSlice;
-        if(readyQueue.isEmpty()){
+
+        if(readyQueue.isEmpty())
             finalizeProgram();
-            return;
-        }
+
         assignNewRunningProcess();
-        ProcessMemoryImage currProcess = currentRunningProcessMemoryImage;
-        if (!inMemoryProcessMemoryImages.contains(currProcess))
+        ProcessMemoryImage runningPMI = currentRunningProcessMemoryImage;
+
+        if (!inMemoryProcessMemoryImages.contains( runningPMI ))
             moveCurrentRunningProcessToMemory();
-        while(remInstructions > 0) {
-            if (!inMemoryProcessMemoryImages.contains(currProcess))
-                preemptCurrentRunningProcess(); // it has been kicked out by another process
-            if (currProcess.hasNextInstruction()) {
-                String instruction = Kernel.getInterpreter().getNextProcessInstruction(currProcess);
-                if (hasNestedInstruction(instruction)){
-                    String innerInstruction = getNestedInstruction(instruction);
-                    executeInstruction(innerInstruction);
-                    remInstructions--;
-                    checkAndHandleProcessArrivals();
+
+        while(instrsLeftInTimeSlice > 0) {
+            printCurrentRunningProcess();
+
+            if (runningPMI.hasNextInstruction()) {
+                String instruction = Kernel.getInterpreter().getNextProcessInstruction(runningPMI);
+
+                if ( hasNestedInstruction(instruction) && !isInnerInstructionAlreadyExecuted(instruction) ){
+                    executeInnerInstruction(instruction);
+                } else {
+                    runningPMI.incrementPC();
+                    executeInstruction(instruction);
                 }
-                currProcess.incrementPC();
-                executeInstruction(instruction);
-                remInstructions--;
+                instrsLeftInTimeSlice--;
                 checkAndHandleProcessArrivals();
-                if(currProcess.getPCB().getProcessState() == ProcessState.BLOCKED)
-                    return;
+                if (runningPMI.getPCB().getProcessState() == ProcessState.BLOCKED)
+                    instrsLeftInTimeSlice = 0;
             } else {
                 finishCurrentRunningProcess();
                 return;
             }
+
         }
-        // After running for a time slice, check again if the process has any instructions left.
-        if(currProcess.hasNextInstruction())
+
+        if(runningPMI.hasNextInstruction())
             preemptCurrentRunningProcess();
         else
             finishCurrentRunningProcess();
@@ -82,12 +86,17 @@ public class Scheduler {
     }
 
     private void checkAndHandleProcessArrivals(){
+        System.out.println("\n*************************************************************" +
+                "*************************************************************");
+        System.out.println("CURRENT INSTRUCTION CYCLE = " + instructionCycle + " instruction(s) executed:\n");
+        System.out.println(Kernel.getMemory());
+
         Iterator<Integer> iterator = scheduledArrivalTimes.iterator();
         while(iterator.hasNext()){
             int time = iterator.next();
             if(time == instructionCycle){
                 int index = scheduledArrivalTimes.indexOf(time);
-                System.out.println("Process " + scheduledArrivalFileLocations.get(index) + " arrived at time = " + time + " instruction(s) executed.");
+                System.out.println("Process " + scheduledArrivalFileLocations.get(index) + " arrived at time = " + instructionCycle + " instruction(s) executed.");
                 Kernel.createNewProcess(scheduledArrivalFileLocations.get(index));
                 iterator.remove();
                 scheduledArrivalFileLocations.remove(index);
@@ -104,6 +113,9 @@ public class Scheduler {
     private synchronized void assignNewRunningProcess(){
         currentRunningProcessMemoryImage = readyQueue.remove();
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.RUNNING);
+
+        System.out.println("Scheduling event occurred: Process chosen to run.");
+        printQueues();
     }
 
 
@@ -180,18 +192,40 @@ public class Scheduler {
     private synchronized void preemptCurrentRunningProcess() {
         readyQueue.add(currentRunningProcessMemoryImage);
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
+
+        //System.out.println("Scheduling event occurred: Process preempted.");
+        //printQueues();
     }
 
 
-    private boolean hasNestedInstruction(String instruction){
+    private synchronized static boolean hasNestedInstruction(String instruction){
         String[] words = instruction.split(" ");
         return words[0].equals("assign") && words[2].equals("readFile");
     }
 
 
-    private String getNestedInstruction(String fullInstruction){
+    private synchronized static String getInnerInstruction(String fullInstruction){
         String[] words = fullInstruction.split(" ");
         return words[2] + " " + words[3];
+    }
+
+
+    private synchronized static boolean isInnerInstructionAlreadyExecuted(String instruction){
+        for(String[] pair : executedInnerInstructions){
+            if(pair[0].equals(instruction) && pair[1].equals( getInnerInstruction(instruction) ))
+                return true;
+        }
+        return false;
+    }
+
+    private void executeInnerInstruction(String instruction){
+        String innerInstruction = getInnerInstruction(instruction);
+        executeInstruction(innerInstruction);
+
+        String[] instrAndInnerInstrPair = new String[2];
+        instrAndInnerInstrPair[0] = instruction;
+        instrAndInnerInstrPair[1] = innerInstruction;
+        executedInnerInstructions.add(instrAndInnerInstrPair);
     }
 
 
@@ -208,6 +242,9 @@ public class Scheduler {
     private synchronized void finishCurrentRunningProcess(){
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.FINISHED);
         processList.remove(currentRunningProcessMemoryImage);
+
+        System.out.println("Scheduling event occurred: Process finished.");
+        printQueues();
     }
 
 
@@ -229,9 +266,6 @@ public class Scheduler {
 
 
     public static void incrementInstructionCycleAndPrintMemory(){
-        System.out.println("\n**********************************************");
-        System.out.println("INSTRUCTION CYCLE = " + instructionCycle + " instructions executed:\n");
-        System.out.println(Kernel.getMemory());
         instructionCycle++;
     }
 
@@ -239,23 +273,27 @@ public class Scheduler {
     public synchronized void addToReadyQueue(ProcessMemoryImage p) {
         readyQueue.add(p);
         p.getPCB().setProcessState(ProcessState.READY);
+
+        System.out.println("Scheduling event occurred: Process added to ready queue.");
+        printQueues();
     }
 
-    public synchronized void printQueues(){
+    public synchronized static void printQueues(){
         printReadyQueue();
         printBlockedQueue();
+        System.out.println();
     }
 
-    public synchronized void printReadyQueue(){
-        System.out.println("Ready Queue (PIDs): FRONT -> "  + readyQueue);
+    public static synchronized void printReadyQueue(){
+        System.out.println("Ready Queue: FRONT -> "  + readyQueue);
     }
 
-    public synchronized void printBlockedQueue(){
-        System.out.println("Blocked Queue (PIDs): FRONT -> " + blockedQueue);
+    public static synchronized void printBlockedQueue(){
+        System.out.println("Blocked Queue: FRONT -> " + blockedQueue);
     }
 
     public synchronized void printCurrentRunningProcess(){
-        System.out.println("Current Running Process(ID): " + currentRunningProcessMemoryImage.toString());
+        System.out.println("Current running process: " + currentRunningProcessMemoryImage.toString());
     }
 
     public static synchronized void addArrivedProcess(ProcessMemoryImage p) {
@@ -268,11 +306,11 @@ public class Scheduler {
         return inMemoryProcessMemoryImages;
     }
 
-    public synchronized Queue<ProcessMemoryImage> getReadyQueue() {
+    public static synchronized Queue<ProcessMemoryImage> getReadyQueue() {
         return readyQueue;
     }
 
-    public synchronized Queue<ProcessMemoryImage> getBlockedQueue() {
+    public static synchronized Queue<ProcessMemoryImage> getBlockedQueue() {
         return blockedQueue;
     }
 

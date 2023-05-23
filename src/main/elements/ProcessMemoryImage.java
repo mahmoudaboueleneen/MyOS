@@ -51,8 +51,9 @@ public class ProcessMemoryImage implements Serializable {
                 "State: " + getPCB().getProcessState() + ", " +
                 "PC: " + getPCB().getProgramCounter() + ", " +
                 "Lower Bound: " + getPCB().getLowerMemoryBoundary() + ", " +
-                "Upper Bound: " + getPCB().getUpperMemoryBoundary() +
-                ",}";
+                "Upper Bound: " + getPCB().getUpperMemoryBoundary() + ", " +
+                "Temp. Location:" + getPCB().getTempLocation() +
+                "}";
     }
 
     public synchronized int getProcessMemorySize(){
@@ -71,7 +72,7 @@ public class ProcessMemoryImage implements Serializable {
                 break;
             }
         }
-        if(lowerBound + processMemorySize > Memory.getMemory().length)
+        if(lowerBound + processMemorySize > Memory.getMemoryArray().length)
             canFitInMemory = false; // the actual permanent assignment
 
         return canFitInMemory;
@@ -90,7 +91,7 @@ public class ProcessMemoryImage implements Serializable {
                 break;
             }
         }
-        if(lowerBound + processMemorySize > Memory.getMemory().length)
+        if(lowerBound + processMemorySize > Memory.getMemoryArray().length)
             canFitInMemory = false;
 
         if(canFitInMemory){

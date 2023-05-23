@@ -1,6 +1,7 @@
 package main.elements;
 
 import main.kernel.Kernel;
+import main.kernel.Scheduler;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
@@ -24,17 +25,19 @@ public class Mutex {
     /**
      * Attempt to acquire resource.
      */
-    public synchronized void semWait(ProcessMemoryImage processMemoryImage){
+    public synchronized void semWait(ProcessMemoryImage p){
         if (this.value == MutexValue.ONE) {
 //          Acquire resource
-            this.ownerID = processMemoryImage.getPCB().getProcessID();
+            this.ownerID = p.getPCB().getProcessID();
             this.value = MutexValue.ZERO;
         }
         else {
 //          Block process
-            this.blockedQueue.add(processMemoryImage);
-            processMemoryImage.getPCB().setProcessState(ProcessState.BLOCKED);
-            Kernel.getScheduler().getBlockedQueue().add(processMemoryImage);
+            this.blockedQueue.add(p);
+            p.getPCB().setProcessState(ProcessState.BLOCKED);
+            Scheduler.getBlockedQueue().add(p);
+            System.out.print("Scheduling event occurred: Process blocked.\n");
+            Scheduler.printQueues();
         }
 
     }
@@ -42,19 +45,20 @@ public class Mutex {
     /**
      * Attempt to release resource.
       */
-    public synchronized void semSignal(ProcessMemoryImage processMemoryImage){
-        if(this.ownerID == processMemoryImage.getPCB().getProcessID()) {
+    public synchronized void semSignal(ProcessMemoryImage p){
+        if(this.ownerID == p.getPCB().getProcessID()) {
             if (this.blockedQueue.isEmpty()) {
 //              Release resource
                 this.value = MutexValue.ONE;
             }
             else {
 //              Unblock a process
-                ProcessMemoryImage releasedProcessMemoryImage = this.blockedQueue.remove();
-                releasedProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
-                Kernel.getScheduler().getReadyQueue().add(releasedProcessMemoryImage);
+                ProcessMemoryImage releasedPMI = this.blockedQueue.remove();
+                Scheduler.getBlockedQueue().remove(releasedPMI);
+                Scheduler.getReadyQueue().add(releasedPMI);
+                releasedPMI.getPCB().setProcessState(ProcessState.READY);
 //              Reassign the resource to the newly unblocked process
-                this.ownerID = releasedProcessMemoryImage.getPCB().getProcessID();
+                this.ownerID = releasedPMI.getPCB().getProcessID();
             }
         }
     }

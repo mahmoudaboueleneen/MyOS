@@ -9,7 +9,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 
-//TODO: Finish all methods.
 public class SystemCallHandler {
 
     public SystemCallHandler(){}
@@ -48,16 +47,15 @@ public class SystemCallHandler {
 
     public synchronized String takeInputFromUser(){
         Scanner sc = new Scanner(System.in);
-        String stringInput = sc.nextLine();
-        return stringInput;
+        return sc.nextLine();
     }
 
     public synchronized MemoryWord readDataFromMemory(int address){
-        return Kernel.getMemory().getMemory()[address];
+        return Memory.getMemoryArray()[address];
     }
 
     public synchronized void writeDataToMemory(int address, MemoryWord word){
-        Kernel.getMemory().writeMemoryWord(address, word);
+        Memory.writeMemoryWord(address, word);
     }
 
 

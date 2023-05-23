@@ -1,14 +1,16 @@
 package main.elements;
 
+import main.kernel.Kernel;
 import main.kernel.Scheduler;
+import main.kernel.SystemCallHandler;
 
 public class Memory {
-    private static MemoryWord[] memory;
-    private static boolean[] occupied;
+    private static MemoryWord[] memoryArray;
+    private static boolean[] occupiedArray;
 
     public Memory(){
-        memory = new MemoryWord[40];
-        occupied = new boolean[40];
+        memoryArray = new MemoryWord[40];
+        occupiedArray = new boolean[40];
     }
 
     public static synchronized void compactMemory(){
@@ -27,8 +29,8 @@ public class Memory {
     }
 
     public static synchronized void clearMemoryWord(int address){
-        memory[address] = null;
-        occupied[address] = false;
+        memoryArray[address] = null;
+        occupiedArray[address] = false;
     }
 
     private static void fillMemoryWithProcessesWhichShouldBeInIt(){
@@ -68,12 +70,12 @@ public class Memory {
     }
 
     public static synchronized void writeMemoryWord(int address, MemoryWord word) {
-        memory[address] = word;
-        occupied[address] = true;
+        memoryArray[address] = word;
+        occupiedArray[address] = true;
     }
 
     public static synchronized MemoryWord readMemoryWord(int address) {
-        return memory[address];
+        return memoryArray[address];
     }
 
     public static synchronized void allocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
@@ -83,7 +85,7 @@ public class Memory {
     }
 
     public static synchronized void allocateMemoryWord(int address){
-        occupied[address] = true;
+        occupiedArray[address] = true;
     }
 
     public static synchronized void deallocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
@@ -93,28 +95,29 @@ public class Memory {
     }
 
     public static synchronized void deallocateMemoryWord(int address){
-        occupied[address] = false;
+        occupiedArray[address] = false;
     }
 
     @Override
     public synchronized String toString () {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < memory.length; i++) {
+        sb.append("MEMORY\n");
+        for (int i = 0; i < memoryArray.length; i++) {
             String varName;
             Object varData;
             if(!isMemoryWordOccupied(i)) {
                 varName = " ";
                 varData = " ";
             } else {
-                varName = memory[i].getVariableName();
-                if(memory[i].getVariableData() instanceof Integer){
-                    varData = memory[i].getVariableData();
+                varName = memoryArray[i].getVariableName();
+                if(memoryArray[i].getVariableData() instanceof Integer){
+                    varData = memoryArray[i].getVariableData();
                 }
-                else if (memory[i].getVariableData() instanceof ProcessState){
-                    varData = ((ProcessState) memory[i].getVariableData()).name();
+                else if (memoryArray[i].getVariableData() instanceof ProcessState){
+                    varData = ((ProcessState) memoryArray[i].getVariableData()).name();
                 }
                 else {
-                    varData = memory[i].getVariableData();
+                    varData = memoryArray[i].getVariableData();
                 }
             }
             sb.append(i);
@@ -127,16 +130,34 @@ public class Memory {
         return sb.toString();
     }
 
-    public static MemoryWord[] getMemory() {
-        return memory;
+    public static MemoryWord[] getMemoryArray() {
+        return memoryArray;
     }
 
     public boolean[] getOccupied() {
-        return occupied;
+        return occupiedArray;
     }
 
     public synchronized static boolean isMemoryWordOccupied(int address) {
-        return occupied[address];
+        return occupiedArray[address];
+    }
+
+    public synchronized static MemoryWord findMemoryWordByName(String givenVariableName, int processID){
+        for (int i = 0; i < memoryArray.length; i++){
+            if (isIndexAtTheGivenProcessID(i, processID)){
+                for (int j = i + Kernel.getPCBSize(); j < i + Kernel.getPCBSize() + Kernel.getDataSize(); j++){
+                    if (memoryArray[j].getVariableName().equals(givenVariableName))
+                        return readMemoryWord(j);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean isIndexAtTheGivenProcessID(int i, int processID){
+        return Memory.isMemoryWordOccupied(i) &&
+                memoryArray[i].getVariableName().equals("PROCESS_ID") &&
+                memoryArray[i].getVariableData().equals(processID);
     }
 
 }

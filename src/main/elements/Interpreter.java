@@ -55,7 +55,9 @@ public class Interpreter {
     }
 
     public static synchronized void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException {
+        System.out.println("Instruction to be executed: '" + instruction + "'\n");
         interpret(instruction,currentRunningProcessMemoryImage);
+        System.out.println("Instruction executed successfully!\nIncrementing instruction cycle...");
         Scheduler.incrementInstructionCycleAndPrintMemory();
     }
 
@@ -150,7 +152,7 @@ public class Interpreter {
     }
 
     private static void writeVariableWordToProcessDataMemory(String varName, String varData, ProcessMemoryImage p){
-        MemoryWord[] memory = Kernel.getMemory().getMemory();
+        MemoryWord[] memory = Memory.getMemoryArray();
         int currProcessID = p.getPCB().getProcessID();
 
         // Search memory for process
@@ -172,7 +174,7 @@ public class Interpreter {
     }
 
     private static MemoryWord getVariableWordFromProcessDataMemory(String varName, ProcessMemoryImage p){
-        MemoryWord[] memory = Memory.getMemory();
+        MemoryWord[] memory = Memory.getMemoryArray();
         int currProcessID = p.getPCB().getProcessID();
 
         // Search memory for process
