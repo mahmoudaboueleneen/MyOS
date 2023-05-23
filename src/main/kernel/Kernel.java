@@ -2,7 +2,9 @@ package main.kernel;
 
 import main.elements.*;
 
+import java.util.ArrayList;
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Scanner;
 
 public class Kernel {
@@ -17,8 +19,8 @@ public class Kernel {
     private static SystemCallHandler systemCallHandler;
     // Fields to handle process arrivals
     private static int instructionsPerTimeSlice;
-    private static int[] scheduledArrivalTimes;
-    private static String[] scheduledArrivalFileLocations;
+    private static List<Integer> scheduledArrivalTimes;
+    private static List<String> scheduledArrivalFileLocations;
     // System-wide global fields
     private static final int PCB_SIZE = 6;
     private static final int DATA_SIZE = 3;
@@ -35,22 +37,30 @@ public class Kernel {
     }
 
     public static void initDefaultConditions(){
-        scheduledArrivalTimes = new int[]{0,1,4};
-        scheduledArrivalFileLocations = new String[]{"src/program_files/Program_1.txt", "src/program_files/Program_2.txt", "src/program_files/Program_3.txt"};
+        scheduledArrivalTimes = new ArrayList<>();
+        scheduledArrivalFileLocations = new ArrayList<>();
+        scheduledArrivalFileLocations.add("src/program_files/Program_1.txt");
+        scheduledArrivalFileLocations.add("src/program_files/Program_2.txt");
+        scheduledArrivalFileLocations.add("src/program_files/Program_3.txt");
         new Kernel(2);
         scheduler.executeRoundRobin();
     }
 
     public static void init(){
-        scheduledArrivalTimes = new int[3];
-        scheduledArrivalFileLocations = new String[]{"src/program_files/Program_1.txt", "src/program_files/Program_2.txt", "src/program_files/Program_3.txt"};
+        scheduledArrivalTimes = new ArrayList<>();
+        scheduledArrivalFileLocations = new ArrayList<>();
+        scheduledArrivalFileLocations.add("src/program_files/Program_1.txt");
+        scheduledArrivalFileLocations.add("src/program_files/Program_2.txt");
+        scheduledArrivalFileLocations.add("src/program_files/Program_3.txt");
         inputInstructionsPerTimeSlice();
         inputArrivalTimes();
         new Kernel(instructionsPerTimeSlice);
-        scheduler.executeRoundRobin();
+        while(true)
+            scheduler.executeRoundRobin();
+
     }
 
-    public static void inputInstructionsPerTimeSlice(){
+    private static void inputInstructionsPerTimeSlice(){
         Scanner inp = new Scanner(System.in);
         System.out.print("Enter the instructions per time slice (round robin):");
         System.out.println();
@@ -70,103 +80,77 @@ public class Kernel {
         }
     }
 
-    public static void inputArrivalTimes(){
+    private static void inputArrivalTimes(){
         Scanner inp = new Scanner(System.in);
         System.out.println("Enter the arrival times of P1, P2 and P3 in order respectively (How many instructions have been executed at arrival time)");
         for(int i=0; i<3; i++) {
             try {
-                scheduledArrivalTimes[i] = (inp.nextInt());
+                scheduledArrivalTimes.add(inp.nextInt());
             } catch (InputMismatchException e) {
                 System.out.println("ERROR: Arrival time must be an integer.");
                 System.out.println("Exiting ...");
                 System.exit(0);
             }
 
-            if(scheduledArrivalTimes[i]<0){
+            if(scheduledArrivalTimes.get(i)<0){
                 System.out.println("ERROR: Arrival time cannot be negative.");
                 System.out.println("Exiting ...");
                 System.exit(0);
             }
         }
+
+        if(!hasTimeZero()){
+            System.out.println("ERROR: One of the processes MUST arrive at time 0.");
+            System.out.println("Exiting ...");
+            System.exit(0);
+        }
+
+        System.out.println("\n**********************************************\n");
     }
 
-    public static synchronized Object[] canFitWhereInMemory(int linesOfCodeCount){
-        boolean canFit = false;
-        int lowerMemoryBound = 0;
-        int upperMemoryBound = 0;
-        int processMemorySize = PCB_SIZE + DATA_SIZE + linesOfCodeCount;
-
-        boolean[] occupied = Kernel.getMemory().getOccupied();
-
-        for(int i = 0; i < occupied.length; i++) {
-            if(!occupied[i]){
-                lowerMemoryBound = i;
-                canFit = true;
+    private static boolean hasTimeZero(){
+        boolean found = false;
+        for(int time : scheduledArrivalTimes){
+            if (time == 0){
+                found = true;
                 break;
             }
         }
-        if(lowerMemoryBound + processMemorySize > memory.getMemory().length)
-            canFit = false;
-
-        upperMemoryBound = lowerMemoryBound + processMemorySize - 1;
-        Object[] result = new Object[4];
-        result[0] = canFit;
-        result[1] = lowerMemoryBound;
-        result[2] = upperMemoryBound;
-        result[3] = processMemorySize;
-        return result;
+        return found;
     }
 
-    /**
-     * Implementation of process creation here follows
-     * (as much as possible) the real 5-step procedure
-     * used in real OS process creation.
-     */
-//  TODO: Finish method.
     public static synchronized void createNewProcess(String programFilePath) {
-        int linesOfCodeCount = interpreter.countFileLinesOfCode(programFilePath);
-        Object[] canFitWhereInMemory = canFitWhereInMemory(linesOfCodeCount);
+        ProcessMemoryImage p = new ProcessMemoryImage( Kernel.getInterpreter().getInstructionsFromFile(programFilePath) );
+        while(!p.canFitInMemory()){
+            Scheduler.swapOutToDisk( Scheduler.getProcessToSwapOutToDisk());
+            Memory.compactMemory();
+        }
+
+        int[] bounds = p.getNewPossibleMemoryBounds();
+        int lowerBound = bounds[0];
+        int upperBound = bounds[1];
 
         System.out.println("    Acquiring unique PID");
-        int processID = Kernel.getScheduler().getNextProcessID();
+        int processID = Scheduler.getNextProcessID();
 
-        if( (boolean) canFitWhereInMemory[0] ){
-            System.out.println("    Allocating memory space");
-            Kernel.getMemory().allocateMemoryPartition((Integer) canFitWhereInMemory[1], (Integer) canFitWhereInMemory[2]);
+        System.out.println("    Allocating memory space");
+        Memory.allocateMemoryPartition(lowerBound, upperBound);
 
-            System.out.println("    Initializing PCB");
-            ProcessControlBlock pcb = new ProcessControlBlock(processID, (Integer) canFitWhereInMemory[1], (Integer) canFitWhereInMemory[2]);
+        System.out.println("    Initializing PCB");
+        ProcessControlBlock pcb = new ProcessControlBlock(processID, lowerBound, upperBound);
 
-            System.out.println("    Linking to scheduling queue");
-            ProcessMemoryImage p = new ProcessMemoryImage( Kernel.getInterpreter().getInstructionsFromFile(programFilePath) );
-            p.setProcessControlBlock(pcb);
-            Kernel.getScheduler().addArrivedProcess(p);
-            Kernel.getScheduler().addToReadyQueue(p);
-            Kernel.getScheduler().addBurstTime( (Integer) canFitWhereInMemory[3] );
+        System.out.println("    Linking to scheduling queue");
+        p.setProcessControlBlock(pcb);
+        Scheduler.addArrivedProcess(p);
+        Kernel.getScheduler().addToReadyQueue(p);
+        //Kernel.getScheduler().addBurstTime( (Integer) canFitWhereInMemory[3] );
 
-            System.out.println("    Finalizing process creation");
-            Kernel.getMemory().fillMemoryPartition(p, (Integer) canFitWhereInMemory[1], (Integer) canFitWhereInMemory[2]);
-            Kernel.getScheduler().getInMemoryProcesses().add(p);
+        System.out.println("    Finalizing process creation");
+        Memory.fillMemoryPartition(p, lowerBound, upperBound);
+        Scheduler.getInMemoryProcesses().add(p);
 
-            System.out.println("    Process created successfully\n");
-        }
 
-        else {
-            /* retrieve a not running process from the Scheduler's processes ArrayList
-             * move this process to disk (serialize)
-             * remove this process from memory (set occupied to false)
-             * compactMemory();
-             * check for space again
-             * keep removing and reorganizing until space is found
-             * move our new process to memory
-             */
-
-            //System.out.println("Process added to memory.");
-
-//          Finalize Process creation ???
-            //
-            //System.out.println("Process created successfully.\n");
-        }
+        System.out.println("    Process created successfully\n");
     }
 
     public static Mutex getUserInputMutex() {

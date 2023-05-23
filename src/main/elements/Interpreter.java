@@ -30,7 +30,7 @@ public class Interpreter {
         return res.toArray(new String[0]);
     }
 
-    public synchronized int countFileLinesOfCode(String filePath){
+    public static synchronized int countFileLinesOfCode(String filePath){
         int linesOfCode = 0;
         try {
             File fileObj = new File(filePath);
@@ -51,20 +51,24 @@ public class Interpreter {
     public synchronized String getNextProcessInstruction(ProcessMemoryImage p){
         int base = p.getPCB().getLowerMemoryBoundary() + 9;
         int offset = p.getPCB().getProgramCounter();
-        return (String) Kernel.getMemory().readMemoryWord(base+offset).getVariableData();
+        return (String) Memory.readMemoryWord(base+offset).getVariableData();
+    }
+
+    public static synchronized void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException {
+        interpret(instruction,currentRunningProcessMemoryImage);
+        Scheduler.incrementInstructionCycleAndPrintMemory();
     }
 
     //TODO: Change words[i] to ithWord.
-    public synchronized void interpret(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException {
+    public static synchronized void interpret(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException {
         String[] words = instruction.split(" ");
-        int currPID = currentRunningProcessMemoryImage.getPCB().getProcessID();
         String firstWord = words[0];
 
         switch (firstWord) {
             case "print" -> {
                 if (words.length != 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, print statement requires 1 parameter");
-                MemoryWord word = getVariableWordFromProcessDataMemory(words[1],currPID);
+                MemoryWord word = getVariableWordFromProcessDataMemory(words[1],currentRunningProcessMemoryImage);
                 String x = (String) word.getVariableData();
                 Kernel.getSystemCallHandler().printToScreen(x);
             }
@@ -76,22 +80,22 @@ public class Interpreter {
                 if (words[2].equals("input")) {
                     Kernel.getSystemCallHandler().printToScreen("Please enter a value:");
                     String inputString = Kernel.getSystemCallHandler().takeInputFromUser();
-                    writeVariableWordToProcessDataMemory(words[1], inputString, currPID);
+                    writeVariableWordToProcessDataMemory(words[1], inputString, currentRunningProcessMemoryImage);
                 }
                 else if (words[2].equals("readFile")) {
                     if(words.length != 4)
                         throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
-                    writeVariableWordToProcessDataMemory(words[1], lastReadFileContent, currPID);
+                    writeVariableWordToProcessDataMemory(words[1], lastReadFileContent, currentRunningProcessMemoryImage);
                 }
                 else
-                    writeVariableWordToProcessDataMemory(words[1], words[2], currPID);
+                    writeVariableWordToProcessDataMemory(words[1], words[2], currentRunningProcessMemoryImage);
             }
 
             case "writeFile" -> {
                 if (words.length != 3)
                     throw new InvalidInstructionException("Invalid instruction syntax, writeFile statement requires 2 parameters.");
-                MemoryWord memWord1 = getVariableWordFromProcessDataMemory(words[1],currPID);
-                MemoryWord memWord2 = getVariableWordFromProcessDataMemory(words[2],currPID);
+                MemoryWord memWord1 = getVariableWordFromProcessDataMemory(words[1],currentRunningProcessMemoryImage);
+                MemoryWord memWord2 = getVariableWordFromProcessDataMemory(words[2],currentRunningProcessMemoryImage);
 
                 Kernel.getSystemCallHandler().writeDataToFileOnDisk((String) memWord1.getVariableData(), (String) memWord2.getVariableData());
             }
@@ -99,15 +103,15 @@ public class Interpreter {
             case "readFile" -> {
                 if (words.length != 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
-                MemoryWord word = getVariableWordFromProcessDataMemory(words[1],currPID);
+                MemoryWord word = getVariableWordFromProcessDataMemory(words[1],currentRunningProcessMemoryImage);
                 lastReadFileContent = Kernel.getSystemCallHandler().readDataFromFileOnDisk((String) word.getVariableData());
             }
 
             case "printFromTo" -> {
                 if (words.length < 3)
                     throw new InvalidInstructionException("Invalid instruction syntax, assign statement requires 2 parameters.");
-                MemoryWord memWord1 = getVariableWordFromProcessDataMemory(words[1],currPID);
-                MemoryWord memWord2 = getVariableWordFromProcessDataMemory(words[2],currPID);
+                MemoryWord memWord1 = getVariableWordFromProcessDataMemory(words[1],currentRunningProcessMemoryImage);
+                MemoryWord memWord2 = getVariableWordFromProcessDataMemory(words[2],currentRunningProcessMemoryImage);
                 if ( isInteger( (String) memWord1.getVariableData() ) && isInteger( (String) memWord2.getVariableData() ) ) {
                     int a = Integer.parseInt((String) memWord1.getVariableData());
                     int b = Integer.parseInt((String) memWord2.getVariableData());
@@ -143,34 +147,38 @@ public class Interpreter {
             }
             default -> throw new InvalidInstructionException();
         }
-
-        Scheduler.incrementInstructionCycleAndPrintMemory();
     }
 
-    private static void writeVariableWordToProcessDataMemory(String varName, String varData, int currProcessID){
+    private static void writeVariableWordToProcessDataMemory(String varName, String varData, ProcessMemoryImage p){
         MemoryWord[] memory = Kernel.getMemory().getMemory();
-        boolean[] occupied = Kernel.getMemory().getOccupied();
+        int currProcessID = p.getPCB().getProcessID();
+
         // Search memory for process
         for(int i = 0; i < memory.length; i++){
-            if(occupied[i] && memory[i].getVariableName().equals("PROCESS_ID") && memory[i].getVariableData().equals(currProcessID)) {
+            if(Memory.isMemoryWordOccupied(i) && memory[i].getVariableName().equals("PROCESS_ID") && memory[i].getVariableData().equals(currProcessID)) {
+
                 // Search process memory for empty data space
-                for(int j = i+6; j < i+9; j++){
+                for(int j = i+Kernel.getPCBSize(); j < i+Kernel.getPCBSize()+Kernel.getDataSize(); j++){
                     if(memory[j].getVariableName().equals("---")) {
                         MemoryWord word = new MemoryWord(varName, varData);
                         Kernel.getSystemCallHandler().writeDataToMemory(j, word);
+                        p.addVariable(word);
                         return;
                     }
                 }
+
             }
         }
     }
 
-    private static MemoryWord getVariableWordFromProcessDataMemory(String varName, int currProcessID){
-        MemoryWord[] memory = Kernel.getMemory().getMemory();
-        boolean[] occupied = Kernel.getMemory().getOccupied();
+    private static MemoryWord getVariableWordFromProcessDataMemory(String varName, ProcessMemoryImage p){
+        MemoryWord[] memory = Memory.getMemory();
+        int currProcessID = p.getPCB().getProcessID();
+
         // Search memory for process
         for(int i = 0; i < memory.length; i++){
-            if(occupied[i] && memory[i].getVariableName().equals("PROCESS_ID") && memory[i].getVariableData().equals(currProcessID)){
+            if(Memory.isMemoryWordOccupied(i) && memory[i].getVariableName().equals("PROCESS_ID") && memory[i].getVariableData().equals(currProcessID)){
+
                 // Search process memory for empty data space
                 for(int j = i+6; j < i+9; j++){
                     if(memory[j].getVariableName().equals(varName)) {
@@ -179,8 +187,10 @@ public class Interpreter {
                         return word;
                     }
                 }
+
             }
         }
+
         return null; //shouldn't be reached
     }
 
