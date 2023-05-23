@@ -57,7 +57,7 @@ public class Interpreter {
     public static synchronized void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException {
         System.out.println("Instruction to be executed: '" + instruction + "'\n");
         interpret(instruction,currentRunningProcessMemoryImage);
-        System.out.println("Instruction executed successfully!\nIncrementing instruction cycle...");
+        System.out.println("Instruction executed.\n\nIncrementing instruction cycle...");
         Scheduler.incrementInstructionCycleAndPrintMemory();
     }
 

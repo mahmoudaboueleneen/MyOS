@@ -1,6 +1,8 @@
 package main.elements;
 
-public class MemoryWord {
+import java.io.Serializable;
+
+public class MemoryWord implements Serializable {
     private String variableName;
     private Object variableData;
 

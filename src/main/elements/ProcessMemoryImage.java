@@ -16,8 +16,10 @@ public class ProcessMemoryImage implements Serializable {
 
     public synchronized void addVariable(MemoryWord word){
         for(int i = 0; i < variables.length; i++)
-            if(variables[i] == null)
+            if(variables[i] == null){
                 variables[i] = word;
+                return;
+            }
     }
 
     public synchronized ProcessControlBlock getPCB() {

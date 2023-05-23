@@ -37,7 +37,7 @@ public class Memory {
         int nextStartingIndex = 0;
         for(ProcessMemoryImage p : Scheduler.getInMemoryProcessMemoryImages()){
             int lowerBound = nextStartingIndex;
-            int upperBound = lowerBound + p.getProcessMemorySize();
+            int upperBound = lowerBound + p.getProcessMemorySize()-1;
             fillMemoryPartition(p, lowerBound, upperBound);
             nextStartingIndex = upperBound + 1;
         }
@@ -78,6 +78,12 @@ public class Memory {
         return memoryArray[address];
     }
 
+    /*
+     * Used primarily when first creating a process
+     * and just marking a memory partition as
+     * reserved, until the process's data is moved
+     * to this partition.
+     */
     public static synchronized void allocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound+1; i++){
             allocateMemoryWord(i);

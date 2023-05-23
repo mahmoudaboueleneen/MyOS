@@ -46,6 +46,7 @@ public class Scheduler {
             finalizeProgram();
 
         assignNewRunningProcess();
+
         ProcessMemoryImage runningPMI = currentRunningProcessMemoryImage;
 
         if (!inMemoryProcessMemoryImages.contains( runningPMI ))
@@ -66,7 +67,7 @@ public class Scheduler {
                 instrsLeftInTimeSlice--;
                 checkAndHandleProcessArrivals();
                 if (runningPMI.getPCB().getProcessState() == ProcessState.BLOCKED)
-                    instrsLeftInTimeSlice = 0;
+                    return;
             } else {
                 finishCurrentRunningProcess();
                 return;
@@ -149,6 +150,11 @@ public class Scheduler {
 
     public static synchronized void swapOutToDisk(ProcessMemoryImage p){
         String location = "src/temp/PID_" + p.getPCB().getProcessID() + ".ser";
+
+        // set the temp location var in the PCB object,
+        p.getPCB().setTempLocation(location);
+
+        // Serialize to temp location,
         try {
             FileOutputStream fileOut = new FileOutputStream(location);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
@@ -159,19 +165,21 @@ public class Scheduler {
         } catch (IOException i) {
             i.printStackTrace();
         }
-        p.getPCB().setTempLocation(location);
-        int lowerBound = p.getPCB().getLowerMemoryBoundary();
-        int upperBound = p.getPCB().getUpperMemoryBoundary();
-        Memory.deallocateMemoryPartition(lowerBound, upperBound);
-        Memory.clearMemoryPartition(lowerBound, upperBound);
-        MemoryWord word = new MemoryWord("TEMP_LOCATION",location);
-        Memory.writeMemoryWord(lowerBound+Kernel.getPCBSize()-1, word);
-        inMemoryProcessMemoryImages.remove(p);
+
+        // remove process from tracked in-memory processes in the scheduler.
+        Iterator<ProcessMemoryImage> iterator = inMemoryProcessMemoryImages.iterator();
+        while(iterator.hasNext()){
+            ProcessMemoryImage temp = iterator.next();
+            if(temp.getPCB().getProcessID() == p.getPCB().getProcessID())
+                iterator.remove();
+        }
     }
 
 
     public static synchronized void swapInFromDisk(String location, int lowerBound, int upperBound){
         ProcessMemoryImage p = null;
+
+        // Deserialize
         try {
             FileInputStream fileIn = new FileInputStream(location);
             ObjectInputStream in = new ObjectInputStream(fileIn);
@@ -181,20 +189,21 @@ public class Scheduler {
         } catch (IOException | ClassNotFoundException e ) {
             e.printStackTrace();
         }
+
+        // set the temp location var in the PCB object,
         p.getPCB().setTempLocation("---");
-        Memory.allocateMemoryPartition(lowerBound, upperBound);
+
+        // fill memory with process,
         Memory.fillMemoryPartition(p, lowerBound, upperBound);
+
+        // add process to tracked in-memory processes in the scheduler.
         inMemoryProcessMemoryImages.add(p);
-        //return p;
     }
 
 
     private synchronized void preemptCurrentRunningProcess() {
         readyQueue.add(currentRunningProcessMemoryImage);
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
-
-        //System.out.println("Scheduling event occurred: Process preempted.");
-        //printQueues();
     }
 
 
@@ -242,6 +251,7 @@ public class Scheduler {
     private synchronized void finishCurrentRunningProcess(){
         currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.FINISHED);
         processList.remove(currentRunningProcessMemoryImage);
+        inMemoryProcessMemoryImages.remove(currentRunningProcessMemoryImage);
 
         System.out.println("Scheduling event occurred: Process finished.");
         printQueues();
