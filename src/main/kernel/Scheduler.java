@@ -83,47 +83,28 @@ public class Scheduler {
             preemptCurrentRunningProcess();
         else
             finishCurrentRunningProcess();
-    }
 
-    private void checkAndHandleFirstProcessArrivals(){
-        checkAndHandleProcessArrivals();
-        firstArrivalsHandled = true;
-    }
-
-    private void checkAndHandleProcessArrivals(){
-        System.out.println("\n**************************************************************************************************************************");
-        System.out.println("CURRENT INSTRUCTION CYCLE = " + instructionCycle + " instruction(s) executed:\n");
-        //System.out.println(Kernel.getMemory());
-
-        Iterator<Integer> iterator = scheduledArrivalTimes.iterator();
-        while(iterator.hasNext()){
-            int time = iterator.next();
-            if(time == instructionCycle){
-                int index = scheduledArrivalTimes.indexOf(time);
-                System.out.println("Process " + scheduledArrivalFileLocations.get(index) + " arrived at time = " + instructionCycle + " instruction(s) executed.");
-                Kernel.createNewProcess(scheduledArrivalFileLocations.get(index));
-                iterator.remove();
-                scheduledArrivalFileLocations.remove(index);
-            }
-        }
-    }
-
-    private void finalizeProgram(){
-        System.out.println("All processes finished.");
-        System.exit(0);
+        currentRunningProcessMemoryImage = null;
     }
 
     private synchronized void assignNewRunningProcess(){
         currentRunningProcessMemoryImage = readyQueue.remove();
         currentRunningProcessMemoryImage.setProcessState(ProcessState.RUNNING);
-        System.out.println("Scheduling event occurred: Process chosen to run.");
+        System.out.println("PROCESS CHOSEN TO RUN: " + currentRunningProcessMemoryImage);
         printQueues();
-
-        System.out.println(Kernel.getMemory());
     }
 
-    private synchronized void moveCurrentRunningProcessToMemory() {
-        moveProcessToMemory(currentRunningProcessMemoryImage);
+    private synchronized void preemptCurrentRunningProcess() {
+        readyQueue.add(currentRunningProcessMemoryImage);
+        currentRunningProcessMemoryImage.setProcessState(ProcessState.READY);
+    }
+
+    private synchronized void finishCurrentRunningProcess(){
+        currentRunningProcessMemoryImage.setProcessState(ProcessState.FINISHED);
+        readyQueue.remove(currentRunningProcessMemoryImage);
+        blockedQueue.remove(currentRunningProcessMemoryImage);
+        System.out.println("PROCESS FINISHED: " + currentRunningProcessMemoryImage);
+        printQueues();
     }
 
     public synchronized static void moveProcessToMemory(ProcessMemoryImage p){
@@ -134,46 +115,47 @@ public class Scheduler {
         int[] bounds = p.getNewPossibleMemoryBounds();
         int newLowerBound = bounds[0];
         int newUpperBound = bounds[1];
-        swapInFromDisk(p.getPCB().getTempLocation(), newLowerBound, newUpperBound);
-    }
-
-    public synchronized static ProcessMemoryImage getProcessToSwapOutToDisk(){
-        ProcessMemoryImage p = null;
-        if(!blockedQueue.isEmpty())
-            p = ((ArrayDeque<ProcessMemoryImage>)blockedQueue).getLast();
-        else if(!readyQueue.isEmpty())
-            p = ((ArrayDeque<ProcessMemoryImage>)readyQueue).getLast();
-        return p;
+        swapInFromDisk(p, newLowerBound, newUpperBound);
     }
 
     public static synchronized void swapOutToDisk(ProcessMemoryImage p){
-        String location = "src/temp/PID_"+ p.getPCB().getProcessID() +".ser";
+        String location = "src/temp/PID_" + p.getPCB().getProcessID() + ".ser";
         p.setTempLocation(location);
+        p.setLowerMemoryBoundary(-1); // -1 denotes that it's not in memory
+        p.setUpperMemoryBoundary(-1);
         serializeProcess(p, location);
 
-        // Clear memory partition
-        Memory.clearMemoryPartition(p.getPCB().getLowerMemoryBoundary(), p.getPCB().getUpperMemoryBoundary());
-
-        // Remove process from tracked inMemoryProcessMemoryImages
+        // Effectively inMemoryProcessMemoryImages.remove(p)
         Iterator<ProcessMemoryImage> iterator = inMemoryProcessMemoryImages.iterator();
         while(iterator.hasNext()){
             ProcessMemoryImage temp = iterator.next();
             if(temp.getPCB().getProcessID() == p.getPCB().getProcessID())
                 iterator.remove();
         }
-
-        System.out.println("Process with PID = "+ p.getPCB().getProcessID() +" swapped out to disk.\n");
+        System.out.println("PROCESS SWAPPED OUT TO DISK: PID = " + p.getPCB().getProcessID() + "\n");
     }
 
-    public static synchronized void swapInFromDisk(String location, int newLowerBound, int newUpperBound){
-        ProcessMemoryImage p = deserializeProcess(location);
+    public static synchronized void swapInFromDisk(ProcessMemoryImage p, int newLowerBound, int newUpperBound){
+        deserializeProcess(p.getPCB().getTempLocation()); // Useless but ok
         p.setTempLocation("---");
         p.setLowerMemoryBoundary(newLowerBound);
         p.setUpperMemoryBoundary(newUpperBound);
         Memory.fillMemoryPartitionWithProcess(p);
         inMemoryProcessMemoryImages.add(p);
+        System.out.println("PROCESS SWAPPED IN FROM ISK: PID = " + p.getPCB().getProcessID() + "\n");
+    }
 
-        System.out.println("Process with PID = "+ p.getPCB().getProcessID() +" swapped in from disk.\n");
+    public synchronized static ProcessMemoryImage getProcessToSwapOutToDisk(){
+        for(ProcessMemoryImage each : processList)
+            if(each.getPCB().getProcessState().equals(ProcessState.FINISHED))
+                return each;
+
+        ProcessMemoryImage p = null;
+        if(!blockedQueue.isEmpty())
+            p = ((ArrayDeque<ProcessMemoryImage>)blockedQueue).getLast();
+        else if(!readyQueue.isEmpty())
+            p = ((ArrayDeque<ProcessMemoryImage>)readyQueue).getLast();
+        return p;
     }
 
     private static synchronized void serializeProcess(ProcessMemoryImage p, String location){
@@ -202,19 +184,22 @@ public class Scheduler {
         return p;
     }
 
-    private synchronized void preemptCurrentRunningProcess() {
-        readyQueue.add(currentRunningProcessMemoryImage);
-        currentRunningProcessMemoryImage.setProcessState(ProcessState.READY);
-    }
 
     private synchronized static boolean hasNestedInstruction(String instruction){
         String[] words = instruction.split(" ");
-        return words[0].equals("assign") && words[2].equals("readFile");
+        return words[0].equals("assign") && words[2].equals("readFile")
+               || words[0].equals("assign") && words[2].equals("input");
     }
 
     private synchronized static String getInnerInstruction(String fullInstruction){
         String[] words = fullInstruction.split(" ");
-        return words[2] + " " + words[3];
+
+        if(words[0].equals("assign") && words[2].equals("readFile"))
+            return words[2] + " " + words[3];   // "readFile b"
+        else if (words[0].equals("assign") && words[2].equals("input"))
+            return words[2];    // input
+
+        return null;
     }
 
     private synchronized static boolean isInnerInstructionAlreadyExecuted(String instruction){
@@ -244,19 +229,32 @@ public class Scheduler {
         }
     }
 
-    private synchronized void finishCurrentRunningProcess(){
-        currentRunningProcessMemoryImage.setProcessState(ProcessState.FINISHED);
-        processList.remove(currentRunningProcessMemoryImage);
-        inMemoryProcessMemoryImages.remove(currentRunningProcessMemoryImage);
-        readyQueue.remove(currentRunningProcessMemoryImage);
-        blockedQueue.remove(currentRunningProcessMemoryImage);
+    private void checkAndHandleFirstProcessArrivals(){
+        checkAndHandleProcessArrivals();
+        firstArrivalsHandled = true;
+    }
 
-        Memory.clearMemoryPartition(currentRunningProcessMemoryImage.getPCB().getLowerMemoryBoundary(),
-                currentRunningProcessMemoryImage.getPCB().getUpperMemoryBoundary());
-        Memory.compactMemory();
+    private void checkAndHandleProcessArrivals(){
+        System.out.println("\n**************************************************************************************************************************");
+        System.out.println("CURRENT INSTRUCTION CYCLE = " + instructionCycle + " instruction(s) executed:\n");
+        //System.out.println(Kernel.getMemory());
 
-        System.out.println("Scheduling event occurred: Process finished.");
-        printQueues();
+        Iterator<Integer> iterator = scheduledArrivalTimes.iterator();
+        while(iterator.hasNext()){
+            int time = iterator.next();
+            if(time == instructionCycle){
+                int index = scheduledArrivalTimes.indexOf(time);
+                System.out.println("PROCESS ARRIVED: " + scheduledArrivalFileLocations.get(index) + "\n");
+                Kernel.createNewProcess(scheduledArrivalFileLocations.get(index));
+                iterator.remove();
+                scheduledArrivalFileLocations.remove(index);
+            }
+        }
+    }
+
+    private void finalizeProgram(){
+        System.out.println("All processes finished.");
+        System.exit(0);
     }
 
     public static synchronized int getNextProcessID() {
@@ -282,7 +280,7 @@ public class Scheduler {
     public synchronized void addToReadyQueue(ProcessMemoryImage p) {
         readyQueue.add(p);
         p.setProcessState(ProcessState.READY);
-        System.out.println("Scheduling event occurred: Process added to ready queue.");
+        System.out.println("PROCESS ADDED TO READY QUEUE: " + p);
         printQueues();
     }
 
@@ -293,15 +291,15 @@ public class Scheduler {
     }
 
     public static synchronized void printReadyQueue(){
-        System.out.println("Ready Queue: FRONT -> "  + readyQueue);
+        System.out.println("READY QUEUE: -> "  + readyQueue);
     }
 
     public static synchronized void printBlockedQueue(){
-        System.out.println("Blocked Queue: FRONT -> " + blockedQueue);
+        System.out.println("BLOCKED QUEUE: -> " + blockedQueue);
     }
 
     public synchronized void printCurrentRunningProcess(){
-        System.out.println("Current running process: " + currentRunningProcessMemoryImage.toString());
+        System.out.println("CURRENT RUNNING PROCESS: " + currentRunningProcessMemoryImage.toString());
     }
 
     public static synchronized void addArrivedProcess(ProcessMemoryImage p) {

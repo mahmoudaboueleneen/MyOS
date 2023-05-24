@@ -116,7 +116,6 @@ public class Memory {
     @Override
     public synchronized String toString () {
         StringBuilder sb = new StringBuilder();
-        sb.append("MEMORY\n");
         for (int i = 0; i < memoryArray.length; i++) {
             String varName;
             Object varData;
@@ -158,10 +157,15 @@ public class Memory {
     }
 
     public synchronized static MemoryWord getMemoryWordByName(String givenVariableName, int processID){
-
+        // Search memory for process with given processID
         for (int i = 0; i < memoryArray.length; i++){
             if ( isIndexAtTheGivenProcessID(i, processID) ) {
-                for (int j = i + Kernel.getPCBSize(); j < i + Kernel.getPCBSize() + Kernel.getDataSize(); j++){
+
+                // Search process memory space for the required memory word
+                for (int j = i+1; j < memoryArray.length; j++){
+                    if(memoryArray[j].getVariableName().equals("PROCESS_ID"))
+                        return null; // we reached another Process without finding the word.
+
                     if (memoryArray[j].getVariableName().equals(givenVariableName))
                         return SystemCallHandler.readDataFromMemory(j);
                 }
@@ -170,16 +174,43 @@ public class Memory {
         return null;
     }
 
-    public synchronized static void assignMemoryWordValueByName(String varName, String varData, ProcessMemoryImage p) throws VariableAssignmentException {
+    public synchronized static void setMemoryWordValue(String varName, String varData, ProcessMemoryImage p) {
         int processID = p.getPCB().getProcessID();
 
+        // Search memory for process with given processID
         for (int i = 0; i < memoryArray.length; i++){
             if( isIndexAtTheGivenProcessID(i, processID)) {
-                for (int j = i+Kernel.getPCBSize(); j < i+Kernel.getPCBSize()+Kernel.getDataSize(); j++){
-                    if (memoryArray[j].getVariableName().equals(varName))
-                        throw new VariableAssignmentException();
 
-                    if (memoryArray[j].getVariableName().equals("---")) {
+                // Search process memory space for the required memory word
+                for (int j = i+1; j < memoryArray.length; j++){
+                    if(memoryArray[j].getVariableName().equals("PROCESS_ID"))
+                        return; // we reached another Process without finding the word.
+
+                    if (memoryArray[j].getVariableName().equals(varName)){
+                        SystemCallHandler.writeDataToMemory(j, new MemoryWord(varName, varData));
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    public synchronized static void initializeVariableInMemory(String varName, String varData, ProcessMemoryImage p) throws VariableAssignmentException {
+        int processID = p.getPCB().getProcessID();
+
+        // Search memory for process with given processID
+        for (int i = 0; i < memoryArray.length; i++){
+            if( isIndexAtTheGivenProcessID(i, processID)) {
+
+                // Search process memory space for a free data variable space
+                for (int j = i+1; j < memoryArray.length; j++){
+                    if(memoryArray[j].getVariableName().equals("PROCESS_ID"))
+                        return; // we reached another Process without finding the word.
+
+                    if (memoryArray[j].getVariableName().equals(varName))
+                        throw new VariableAssignmentException(); // var with same name already assigned for this process.
+
+                    if (memoryArray[j].getVariableName().equals("---")) { // free space found.
                         MemoryWord word = new MemoryWord(varName, varData);
                         SystemCallHandler.writeDataToMemory(j, word);
                         p.addVariable(word);

@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Interpreter {
-    private static String lastReadFileContent;
+    private static String temp;
 
     public synchronized String[] getInstructionsFromFile(String filePath){
         ArrayList<String> res = new ArrayList<>();
@@ -57,12 +57,16 @@ public class Interpreter {
     }
 
     public static synchronized void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException, VariableAssignmentException {
-        System.out.println("Instruction to be executed: '" + instruction + "'\n");
+        System.out.println("INSTRUCTION TO BE EXECUTED: '" + instruction + "'\n");
         interpret(instruction,currentRunningProcessMemoryImage);
-        System.out.print("Instruction successfully executed. Incrementing instruction cycle...");
+        System.out.println("Instruction successfully executed!\n");
+        System.out.println("MEMORY AFTER EXECUTING INSTR.:");
+        System.out.println(Kernel.getMemory());
+        System.out.println("Incrementing instruction cycle...");
         Scheduler.incrementInstructionCycleAndPrintMemory();
     }
 
+    //TODO: Change words[n] to nthWord.
     public static synchronized void interpret(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException, VariableAssignmentException {
         String[] words = instruction.split(" ");
         String firstWord = words[0];
@@ -78,20 +82,25 @@ public class Interpreter {
 
             case "assign" -> {
                 if (words.length < 3)
-                    throw new InvalidInstructionException("Invalid instruction syntax, assign statement requires 2 parameters.");
+                    throw new InvalidInstructionException("Invalid instruction syntax, assign statement requires 2 parameters at least.");
 
                 if (words[2].equals("input")) {
-                    SystemCallHandler.printToScreen("Please enter a value:");
-                    String inputString = SystemCallHandler.takeInputFromUser();
-                    assignVariableValue(words[1], inputString, currentRunningProcessMemoryImage);
+                    if(words.length != 3)
+                       throw new InvalidInstructionException("Invalid instruction syntax, should be 'assign VAR_NAME input'");
+                    Memory.initializeVariableInMemory(words[1], temp, currentRunningProcessMemoryImage);
                 }
                 else if (words[2].equals("readFile")) {
                     if(words.length != 4)
                         throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
-                    assignVariableValue(words[1], lastReadFileContent, currentRunningProcessMemoryImage);
+                    Memory.initializeVariableInMemory(words[1], temp, currentRunningProcessMemoryImage);
                 }
                 else
-                    assignVariableValue(words[1], words[2], currentRunningProcessMemoryImage);
+                    Memory.initializeVariableInMemory(words[1], words[2], currentRunningProcessMemoryImage);
+            }
+
+            case "input" -> {
+                SystemCallHandler.printToScreen("Please enter a value:");
+                temp = SystemCallHandler.takeInputFromUser();
             }
 
             case "writeFile" -> {
@@ -107,7 +116,7 @@ public class Interpreter {
                 if (words.length != 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
                 MemoryWord word = getVariable(words[1],currentRunningProcessMemoryImage);
-                lastReadFileContent = SystemCallHandler.readDataFromFileOnDisk((String) word.getVariableData());
+                temp = SystemCallHandler.readDataFromFileOnDisk((String) word.getVariableData());
             }
 
             case "printFromTo" -> {
@@ -150,10 +159,6 @@ public class Interpreter {
             }
             default -> throw new InvalidInstructionException();
         }
-    }
-
-    private static void assignVariableValue(String varName, String varData, ProcessMemoryImage p) throws VariableAssignmentException {
-        Memory.assignMemoryWordValueByName(varName, varData, p);
     }
 
     private static MemoryWord getVariable(String varName, ProcessMemoryImage p){

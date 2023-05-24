@@ -36,7 +36,7 @@ public class Mutex {
             this.blockedQueue.add(p);
             p.setProcessState(ProcessState.BLOCKED);
             Scheduler.getBlockedQueue().add(p);
-            System.out.print("Scheduling event occurred: Process blocked.\n");
+            System.out.println("PROCESS BLOCKED: " + p);
             Scheduler.printQueues();
         }
 
