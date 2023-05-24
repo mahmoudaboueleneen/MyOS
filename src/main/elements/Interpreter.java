@@ -10,41 +10,40 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-public class Interpreter {
-    /*
-     * Each of these arrays has one cell for each process,
-     * holds return value of last executed 'input'/'readFile'
-     * instruction.
-     */
-    private static String[] inputReturnedContents;
-    private static String[] readFileReturnedContents;
+public abstract class Interpreter {
 
-    public Interpreter(){
-        inputReturnedContents = new String[3];
-        readFileReturnedContents = new String[3];
-    }
+    // Each of these arrays has one cell for each process, holds
+    // return value of last executed input/readFile instructions
+    // respectively.
+    private static final String[] inputReturnedContents = new String[3];
+    private static final String[] readFileReturnedContents = new String[3];
 
     public static String getNextProcessInstruction(ProcessMemoryImage p){
         int base = p.getPCB().getLowerMemoryBoundary() + 9;
         int offset = p.getPCB().getProgramCounter();
-        return (String) Memory.readMemoryWord(base+offset).getVariableData();
+        return (String) Memory.readMemoryWord(base + offset).getVariableData();
     }
 
     public static void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException, VariableAssignmentException {
         System.out.println("INSTRUCTION TO BE EXECUTED: '" + instruction + "'\n");
+
         interpret(instruction,currentRunningProcessMemoryImage);
+
         System.out.println("Instruction interpreted.\n");
 
         System.out.println("MEMORY AFTER INTERPRETING & EXECUTING INSTR.:");
-        System.out.println(Kernel.getMemory());
+
+        Memory.printMemory();
+
         System.out.println("Incrementing instruction cycle...");
 
         Scheduler.incrementInstructionCycle();
     }
 
-    //TODO: Change words[n] to nthWord.
-    public static void interpret(String instruction, ProcessMemoryImage p) throws InvalidInstructionException, VariableAssignmentException {
+
+    private static void interpret(String instruction, ProcessMemoryImage p) throws InvalidInstructionException, VariableAssignmentException {
         String[] words = instruction.split(" ");
+
         String firstWord = words[0];
 
         switch (firstWord) {
@@ -133,6 +132,7 @@ public class Interpreter {
                     default -> throw new InvalidInstructionException("Invalid resource name: must be userInput, userOutput or file");
                 }
             }
+
             default -> throw new InvalidInstructionException();
         }
     }
@@ -142,14 +142,6 @@ public class Interpreter {
         return Memory.getMemoryWordByName(varName,processID);
     }
 
-    public static boolean isInteger(String s) {
-        try {
-            Integer.parseInt(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
 
     public static String[] getInstructionsFromFile(String filePath){
         ArrayList<String> res = new ArrayList<>();
@@ -169,22 +161,13 @@ public class Interpreter {
         return res.toArray(new String[0]);
     }
 
-    public static int countFileLinesOfCode(String filePath){
-        int linesOfCode = 0;
-        try {
-            File fileObj = new File(filePath);
-            Scanner myReader = new Scanner(fileObj);
-            while (myReader.hasNextLine()) {
-                myReader.nextLine();
-                linesOfCode++;
-            }
-            myReader.close();
-        }
-        catch (FileNotFoundException e) {
-            System.out.println("Error: File not found, exiting.");
-            e.printStackTrace();
-        }
-        return linesOfCode;
-    }
 
+    private static boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
 }

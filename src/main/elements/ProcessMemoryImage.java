@@ -74,7 +74,7 @@ public class ProcessMemoryImage implements Serializable {
         boolean canFitInMemory = false;
         int lowerBound = 0;
         int processMemorySize = this.getProcessMemorySize();
-        boolean[] reserved = Kernel.getMemory().getReservedArray();
+        boolean[] reserved = Memory.getReservedArray();
         for(int i = 0; i < reserved.length; i++) {
             if(!reserved[i]){
                 lowerBound = i;
@@ -93,7 +93,7 @@ public class ProcessMemoryImage implements Serializable {
         int lowerBound = 0;
         int upperBound = 0;
         int processMemorySize = this.getProcessMemorySize();
-        boolean[] reserved = Kernel.getMemory().getReservedArray();
+        boolean[] reserved = Memory.getReservedArray();
         for(int i = 0; i < reserved.length; i++) {
             if(!reserved[i]){
                 lowerBound = i;

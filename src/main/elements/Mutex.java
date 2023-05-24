@@ -1,8 +1,6 @@
 package main.elements;
 
-import main.kernel.Kernel;
 import main.kernel.Scheduler;
-
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -12,6 +10,8 @@ public class Mutex {
         ZERO,   // Resource is taken.
         ONE     // Resource is free.
     }
+
+    // Mutex fields.
     private MutexValue value;
     private final Queue<ProcessMemoryImage> blockedQueue;
     private int ownerID;
@@ -27,8 +27,7 @@ public class Mutex {
             // Acquire resource
             this.ownerID = p.getPCB().getProcessID();
             this.value = MutexValue.ZERO;
-        }
-        else {
+        } else {
             // Block process
             this.blockedQueue.add(p);
             p.setProcessState(ProcessState.BLOCKED);
@@ -36,16 +35,14 @@ public class Mutex {
             System.out.println("PROCESS BLOCKED: " + p);
             Scheduler.printQueues();
         }
-
     }
 
     public synchronized void semSignal(ProcessMemoryImage p){
-        if(this.ownerID == p.getPCB().getProcessID()) {
+        if (this.ownerID == p.getPCB().getProcessID()) {
             if (this.blockedQueue.isEmpty()) {
                 // Release resource
                 this.value = MutexValue.ONE;
-            }
-            else {
+            } else {
                 // Unblock a process
                 ProcessMemoryImage releasedPMI = this.blockedQueue.remove();
                 Scheduler.getBlockedQueue().remove(releasedPMI);

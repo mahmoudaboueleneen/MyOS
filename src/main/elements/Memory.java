@@ -5,24 +5,22 @@ import main.kernel.Kernel;
 import main.kernel.Scheduler;
 import main.kernel.SystemCallHandler;
 
-public class Memory {
-    private static MemoryWord[] memoryArray;
-    private static boolean[] reservedArray;
-    private final int MEMORY_SIZE = 40;
+public abstract class Memory {
+    private static final int MEMORY_SIZE = 40;
+    private static final MemoryWord[] memoryArray = new MemoryWord[MEMORY_SIZE];
+    private static final boolean[] reservedArray = new boolean[MEMORY_SIZE];
 
-    public Memory(){
-        memoryArray = new MemoryWord[MEMORY_SIZE];
-        reservedArray = new boolean[MEMORY_SIZE];
-    }
 
     public static void compactMemory(){
         clearMemory();
         fillMemoryWithProcessesWhichShouldBeInIt();
     }
 
+
     private static void clearMemory(){
-        clearMemoryPartition(0,39);
+        clearMemoryPartition(0,MEMORY_SIZE - 1);
     }
+
 
     public static void clearMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound+1; i++){
@@ -30,10 +28,12 @@ public class Memory {
         }
     }
 
-    public static void clearMemoryWord(int address){
+
+    private static void clearMemoryWord(int address){
         memoryArray[address] = null;
         reservedArray[address] = false;
     }
+
 
     private static void fillMemoryWithProcessesWhichShouldBeInIt(){
         int i = 0;
@@ -46,11 +46,13 @@ public class Memory {
         }
     }
 
+
     public static void fillMemoryPartitionWithProcess(ProcessMemoryImage p) {
         fillPCBMemorySpace(p);
         fillDataMemorySpace(p);
         fillInstructionsMemorySpace(p);
     }
+
 
     private static void fillPCBMemorySpace(ProcessMemoryImage p){
         int i = p.getPCB().getLowerMemoryBoundary();
@@ -62,6 +64,7 @@ public class Memory {
         writeMemoryWord(i+5, new MemoryWord("TEMP_LOCATION", p.getPCB().getTempLocation()==null?"---":p.getPCB().getTempLocation()) );
     }
 
+
     private static void fillDataMemorySpace(ProcessMemoryImage p){
         int i = p.getPCB().getLowerMemoryBoundary() + Kernel.getPCBSize();
         for(MemoryWord var : p.getVariables()){
@@ -71,6 +74,7 @@ public class Memory {
         }
     }
 
+
     private static void fillInstructionsMemorySpace(ProcessMemoryImage p){
         int i = p.getPCB().getLowerMemoryBoundary() + Kernel.getPCBSize() + Kernel.getDataSize();
         for(String instruction : p.getInstructions()){
@@ -79,10 +83,12 @@ public class Memory {
         }
     }
 
+
     public static void writeMemoryWord(int address, MemoryWord word) {
         memoryArray[address] = word;
         reservedArray[address] = true;
     }
+
 
     public static MemoryWord readMemoryWord(int address) {
         return memoryArray[address];
@@ -101,9 +107,11 @@ public class Memory {
         }
     }
 
-    public static void allocateMemoryWord(int address){
+
+    private static void allocateMemoryWord(int address){
         reservedArray[address] = true;
     }
+
 
     public static void deallocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound+1; i++){
@@ -111,52 +119,11 @@ public class Memory {
         }
     }
 
-    public static void deallocateMemoryWord(int address){
+
+    private static void deallocateMemoryWord(int address){
         reservedArray[address] = false;
     }
 
-    @Override
-    public String toString () {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < memoryArray.length; i++) {
-            String varName;
-            Object varData;
-            if(!isMemoryWordOccupied(i)) {
-                varName = " ";
-                varData = " ";
-            } else {
-                varName = memoryArray[i].getVariableName();
-                if(memoryArray[i].getVariableData() instanceof Integer){
-                    varData = memoryArray[i].getVariableData();
-                }
-                else if (memoryArray[i].getVariableData() instanceof ProcessState){
-                    varData = ((ProcessState) memoryArray[i].getVariableData()).name();
-                }
-                else {
-                    varData = memoryArray[i].getVariableData();
-                }
-            }
-            sb.append(i);
-            sb.append(": {");
-            sb.append(varName);
-            sb.append(",");
-            sb.append(varData);
-            sb.append("} \n");
-        }
-        return sb.toString();
-    }
-
-    public static MemoryWord[] getMemoryArray() {
-        return memoryArray;
-    }
-
-    public boolean[] getReservedArray() {
-        return reservedArray;
-    }
-
-    public static boolean isMemoryWordOccupied(int address) {
-        return reservedArray[address];
-    }
 
     public static MemoryWord getMemoryWordByName(String givenVariableName, int processID){
         // Search memory for process with given processID
@@ -175,6 +142,7 @@ public class Memory {
         }
         return null;
     }
+
 
     public static void setMemoryWordValue(String varName, String varData, ProcessMemoryImage p) {
         int processID = p.getPCB().getProcessID();
@@ -196,6 +164,7 @@ public class Memory {
             }
         }
     }
+
 
     public static void initializeVariableInMemory(String varName, String varData, ProcessMemoryImage p) throws VariableAssignmentException {
         int processID = p.getPCB().getProcessID();
@@ -223,10 +192,57 @@ public class Memory {
         }
     }
 
+
     private static boolean isIndexAtTheGivenProcessID(int i, int processID){
         return Memory.isMemoryWordOccupied(i) && memoryArray[i]!=null &&
                 memoryArray[i].getVariableName().equals("PROCESS_ID") &&
                 memoryArray[i].getVariableData().equals(processID);
+    }
+
+
+    public static void printMemory() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < memoryArray.length; i++) {
+            String varName;
+            Object varData;
+            if(!isMemoryWordOccupied(i)) {
+                varName = " ";
+                varData = " ";
+            } else {
+                varName = memoryArray[i].getVariableName();
+                if(memoryArray[i].getVariableData() instanceof Integer){
+                    varData = memoryArray[i].getVariableData();
+                }
+                else if (memoryArray[i].getVariableData() instanceof ProcessState){
+                    varData = ((ProcessState) memoryArray[i].getVariableData()).name();
+                }
+                else {
+                    varData = memoryArray[i].getVariableData();
+                }
+            }
+            sb.append(i);
+            sb.append(": {");
+            sb.append(varName);
+            sb.append(",");
+            sb.append(varData);
+            sb.append("} \n");
+        }
+        System.out.println(sb);
+    }
+
+
+    public static MemoryWord[] getMemoryArray() {
+        return memoryArray;
+    }
+
+
+    public static boolean[] getReservedArray() {
+        return reservedArray;
+    }
+
+
+    public static boolean isMemoryWordOccupied(int address) {
+        return reservedArray[address];
     }
 
 }

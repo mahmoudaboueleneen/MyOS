@@ -12,66 +12,99 @@ public abstract class Kernel {
     private static Mutex userInputMutex;
     private static Mutex userOutputMutex;
     private static Mutex fileMutex;
-    // Instances of the main classes
+
+    // Instance that we will run the scheduling on with the
+    // inputted instructionsPerTimeSlice.
     private static Scheduler scheduler;
-    private static Memory memory;
-    // Fields to handle process arrivals
+
+    // Fields to handle process arrivals.
+    private static final Scanner inp = new Scanner(System.in);
     private static int instructionsPerTimeSlice;
     private static List<Integer> scheduledArrivalTimes;
     private static List<String> scheduledArrivalFileLocations;
-    // System-wide global fields
+
+    // System-wide global fields.
     private static final int PCB_SIZE = 6;
     private static final int DATA_SIZE = 3;
+    private static final int PROCESS_COUNT = 3;
+
 
     public static void initDefaultConditions(){
+        initializeArrays();
+
+        instructionsPerTimeSlice = 2;
+
+        addDefaultArrivalTimes();
+
+        addDefaultArrivalFileLocations();
+
+        initializeResources();
+
+        initializeScheduler();
+
+        runSchedulingAlgorithm();
+    }
+
+
+    public static void init(){
+        initializeArrays();
+
+        inputInstructionsPerTimeSlice();
+
+        inputArrivalTimes();
+
+        addDefaultArrivalFileLocations();
+
+        initializeResources();
+
+        initializeScheduler();
+
+        runSchedulingAlgorithm();
+    }
+
+
+    private static void initializeArrays(){
         scheduledArrivalTimes = new ArrayList<>();
+        scheduledArrivalFileLocations = new ArrayList<>();
+    }
+
+
+    private static void addDefaultArrivalTimes(){
         scheduledArrivalTimes.add(0);
         scheduledArrivalTimes.add(1);
         scheduledArrivalTimes.add(4);
-        scheduledArrivalFileLocations = new ArrayList<>();
-        scheduledArrivalFileLocations.add("src/program_files/Program_1.txt");
-        scheduledArrivalFileLocations.add("src/program_files/Program_2.txt");
-        scheduledArrivalFileLocations.add("src/program_files/Program_3.txt");
-
-        userInputMutex = new Mutex();
-        userOutputMutex = new Mutex();
-        fileMutex = new Mutex();
-        new Interpreter();
-        scheduler = new Scheduler(2, scheduledArrivalTimes, scheduledArrivalFileLocations);
-        memory = new Memory();
-
-        System.out.println("Inputs received, initializing...");
-
-        while(true)
-            scheduler.executeRoundRobin();
     }
 
-    public static void init(){
-        scheduledArrivalTimes = new ArrayList<>();
-        scheduledArrivalFileLocations = new ArrayList<>();
+
+    private static void addDefaultArrivalFileLocations(){
         scheduledArrivalFileLocations.add("src/program_files/Program_1.txt");
         scheduledArrivalFileLocations.add("src/program_files/Program_2.txt");
         scheduledArrivalFileLocations.add("src/program_files/Program_3.txt");
-        inputInstructionsPerTimeSlice();
-        inputArrivalTimes();
+    }
 
+
+    private static void initializeResources(){
         userInputMutex = new Mutex();
         userOutputMutex = new Mutex();
         fileMutex = new Mutex();
-        new Interpreter();
+    }
+
+
+    private static void initializeScheduler(){
         scheduler = new Scheduler(instructionsPerTimeSlice, scheduledArrivalTimes, scheduledArrivalFileLocations);
-        memory = new Memory();
+    }
 
-        System.out.println("Inputs received, initializing...");
 
+    private static void runSchedulingAlgorithm(){
+        System.out.println("Inputs received, running...");
         while(true)
             scheduler.executeRoundRobin();
     }
+
 
     private static void inputInstructionsPerTimeSlice(){
         Scanner inp = new Scanner(System.in);
-        System.out.print("Enter the instructions per time slice (round robin):");
-        System.out.println();
+        System.out.println("Enter the instructions per time slice (round robin):");
 
         try {
             instructionsPerTimeSlice = inp.nextInt();
@@ -86,15 +119,12 @@ public abstract class Kernel {
         }
     }
 
-    public static void exitProgram(){
-        System.out.println("Exiting ...");
-        System.exit(0);
-    }
 
     private static void inputArrivalTimes(){
-        Scanner inp = new Scanner(System.in);
-        System.out.println("Enter the arrival times of P1, P2 and P3 in order respectively (How many instructions have been executed at arrival time)");
-        for(int i=0; i<3; i++) {
+        System.out.println("Enter the arrival times of P1, P2 and P3 in order" +
+                           " respectively (How many instructions have been executed at arrival time)");
+
+        for (int i = 0; i < PROCESS_COUNT; i++) {
             try {
                 scheduledArrivalTimes.add(inp.nextInt());
             } catch (InputMismatchException e) {
@@ -114,69 +144,105 @@ public abstract class Kernel {
         }
     }
 
+
     private static boolean arrivalTimeArrayHasTimeZero(){
-        boolean found = false;
-        for(int time : scheduledArrivalTimes){
-            if (time == 0){
-                found = true;
-                break;
-            }
-        }
-        return found;
+        for(int time : scheduledArrivalTimes)
+            if (time == 0)
+                return true;
+        return false;
     }
 
+
+    public static void exitProgram(){
+        System.out.println("Exiting...");
+        System.exit(0);
+    }
+
+
     public static void createNewProcess(String programFilePath) {
-        ProcessMemoryImage p = new ProcessMemoryImage( Interpreter.getInstructionsFromFile(programFilePath) );
+        ProcessMemoryImage p = createProcessMemoryImage(programFilePath);
+
+        makeSpaceForProcessInMemoryIfNeeded(p);
+
+        int[] bounds = p.getNewPossibleMemoryBounds();
+        int lowerBound = bounds[0];
+        int upperBound = bounds[1];
+        int processID = acquireUniquePID();
+
+        allocateMemoryPartition(lowerBound,upperBound);
+        ProcessControlBlock pcb = initializePCB(processID, lowerBound, upperBound);
+        p.setProcessControlBlock(pcb);
+        linkToSchedulingQueue(p);
+        finalizeProcessCreation(p);
+    }
+
+
+    private static ProcessMemoryImage createProcessMemoryImage(String programFilePath){
+        return new ProcessMemoryImage(Interpreter.getInstructionsFromFile(programFilePath));
+    }
+
+
+    private static void makeSpaceForProcessInMemoryIfNeeded(ProcessMemoryImage p){
         while(!p.canFitInMemory()){
             Scheduler.swapOutToDisk( Scheduler.getProcessToSwapOutToDisk());
             Memory.compactMemory();
         }
-        int[] bounds = p.getNewPossibleMemoryBounds();
-        int lowerBound = bounds[0];
-        int upperBound = bounds[1];
+    }
 
-        //System.out.println("    Acquiring unique PID...");
-        int processID = Scheduler.getNextProcessID();
-        //System.out.println("    Allocating memory space...");
+
+    private static int acquireUniquePID(){
+        return Scheduler.getNextProcessID();
+    }
+
+
+    private static void allocateMemoryPartition(int lowerBound, int upperBound){
         Memory.allocateMemoryPartition(lowerBound, upperBound);
-        //System.out.println("    Initializing PCB...");
-        ProcessControlBlock pcb = new ProcessControlBlock(processID, lowerBound, upperBound);
-        //System.out.println("    Linking to scheduling queue...\n");
-        p.setProcessControlBlock(pcb);
+    }
+
+
+    private static ProcessControlBlock initializePCB(int processID, int lowerBound, int upperBound){
+        return new ProcessControlBlock(processID, lowerBound, upperBound);
+    }
+
+
+    private static void linkToSchedulingQueue(ProcessMemoryImage p){
         Scheduler.addArrivedProcess(p);
         Kernel.getScheduler().addToReadyQueue(p);
-        //System.out.println("    Finalizing process creation...");
+    }
+
+
+    private static void finalizeProcessCreation(ProcessMemoryImage p){
         Memory.fillMemoryPartitionWithProcess(p);
         Scheduler.getInMemoryProcesses().add(p);
-        //System.out.println("    Process created successfully!\n");
     }
+
 
     public static Mutex getUserInputMutex() {
         return userInputMutex;
     }
 
+
     public static Mutex getUserOutputMutex() {
         return userOutputMutex;
     }
+
 
     public static Mutex getFileMutex() {
         return fileMutex;
     }
 
+
     public static Scheduler getScheduler() {
         return scheduler;
     }
 
-    public static Memory getMemory() {
-        return memory;
-    }
 
     public static int getPCBSize(){
         return PCB_SIZE;
     }
 
+
     public static int getDataSize(){
         return DATA_SIZE;
     }
-
 }
