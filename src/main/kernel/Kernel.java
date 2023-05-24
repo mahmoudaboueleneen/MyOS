@@ -1,6 +1,9 @@
 package main.kernel;
 
-import main.elements.*;
+import main.memory_management.MemoryManager;
+import main.process_management.ProcessControlBlock;
+import main.process_management.ProcessMemoryImage;
+import main.synchronization.Mutex;
 import main.translators.Interpreter;
 
 import java.util.ArrayList;

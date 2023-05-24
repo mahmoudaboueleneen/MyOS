@@ -1,8 +1,10 @@
 package main.kernel;
 
-import main.elements.*;
 import main.exceptions.InvalidInstructionException;
 import main.exceptions.VariableAssignmentException;
+import main.memory_management.MemoryManager;
+import main.process_management.ProcessMemoryImage;
+import main.process_management.ProcessState;
 import main.translators.Interpreter;
 
 import java.io.*;

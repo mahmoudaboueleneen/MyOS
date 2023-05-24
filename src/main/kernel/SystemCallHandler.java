@@ -1,7 +1,7 @@
 package main.kernel;
 
-import main.elements.MemoryManager;
-import main.elements.MemoryWord;
+import main.memory_management.MemoryManager;
+import main.memory_management.MemoryWord;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;

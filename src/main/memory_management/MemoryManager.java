@@ -1,5 +1,7 @@
-package main.elements;
+package main.memory_management;
 
+import main.process_management.ProcessMemoryImage;
+import main.process_management.ProcessState;
 import main.exceptions.VariableAssignmentException;
 import main.kernel.Kernel;
 import main.kernel.Scheduler;

@@ -1,6 +1,9 @@
-package main.elements;
+package main.synchronization;
 
 import main.kernel.Scheduler;
+import main.process_management.ProcessMemoryImage;
+import main.process_management.ProcessState;
+
 import java.util.ArrayDeque;
 import java.util.Queue;
 

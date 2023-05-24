@@ -1,6 +1,8 @@
-package main.elements;
+package main.process_management;
 
 import main.kernel.Kernel;
+import main.memory_management.MemoryManager;
+import main.memory_management.MemoryWord;
 
 import java.io.Serializable;
 

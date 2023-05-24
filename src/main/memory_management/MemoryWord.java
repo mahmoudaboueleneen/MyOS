@@ -1,4 +1,4 @@
-package main.elements;
+package main.memory_management;
 
 import java.io.Serializable;
 
