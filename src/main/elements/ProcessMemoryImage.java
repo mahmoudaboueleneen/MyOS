@@ -39,7 +39,7 @@ public class ProcessMemoryImage implements Serializable {
     }
 
     public boolean hasNextInstruction(){
-        if(processControlBlock.getProgramCounter() >= instructions.length - 1)
+        if(processControlBlock.getProgramCounter() > instructions.length - 1)
             return false;
         return true;
     }
