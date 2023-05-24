@@ -5,7 +5,7 @@ import main.kernel.Kernel;
 import main.kernel.Scheduler;
 import main.kernel.SystemCallHandler;
 
-public abstract class Memory {
+public abstract class MemoryManager {
     private static final int MEMORY_SIZE = 40;
     private static final MemoryWord[] memoryArray = new MemoryWord[MEMORY_SIZE];
     private static final boolean[] reservedArray = new boolean[MEMORY_SIZE];
@@ -194,7 +194,7 @@ public abstract class Memory {
 
 
     private static boolean isIndexAtTheGivenProcessID(int i, int processID){
-        return Memory.isMemoryWordOccupied(i) && memoryArray[i]!=null &&
+        return MemoryManager.isMemoryWordOccupied(i) && memoryArray[i]!=null &&
                 memoryArray[i].getVariableName().equals("PROCESS_ID") &&
                 memoryArray[i].getVariableData().equals(processID);
     }

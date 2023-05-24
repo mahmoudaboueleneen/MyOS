@@ -1,6 +1,6 @@
 package main.translators;
 
-import main.elements.Memory;
+import main.elements.MemoryManager;
 import main.elements.MemoryWord;
 import main.elements.ProcessMemoryImage;
 import main.exceptions.VariableAssignmentException;
@@ -24,7 +24,7 @@ public abstract class Interpreter {
     public static String getNextProcessInstruction(ProcessMemoryImage p){
         int base = p.getPCB().getLowerMemoryBoundary() + 9;
         int offset = p.getPCB().getProgramCounter();
-        return (String) Memory.readMemoryWord(base + offset).getVariableData();
+        return (String) MemoryManager.readMemoryWord(base + offset).getVariableData();
     }
 
     public static void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException, VariableAssignmentException {
@@ -36,7 +36,7 @@ public abstract class Interpreter {
 
         System.out.println("MEMORY AFTER INTERPRETING & EXECUTING INSTR.:");
 
-        Memory.printMemory();
+        MemoryManager.printMemory();
 
         System.out.println("Incrementing instruction cycle...");
 
@@ -65,15 +65,15 @@ public abstract class Interpreter {
                 if (words[2].equals("input")) {
                     if(words.length != 3)
                        throw new InvalidInstructionException("Invalid instruction syntax, should be 'assign VAR_NAME input'");
-                    Memory.initializeVariableInMemory(words[1], inputReturnedContents[p.getPCB().getProcessID()], p);
+                    MemoryManager.initializeVariableInMemory(words[1], inputReturnedContents[p.getPCB().getProcessID()], p);
                 }
                 else if (words[2].equals("readFile")) {
                     if(words.length != 4)
                         throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
-                    Memory.initializeVariableInMemory(words[1], readFileReturnedContents[p.getPCB().getProcessID()], p);
+                    MemoryManager.initializeVariableInMemory(words[1], readFileReturnedContents[p.getPCB().getProcessID()], p);
                 }
                 else
-                    Memory.initializeVariableInMemory(words[1], words[2], p);
+                    MemoryManager.initializeVariableInMemory(words[1], words[2], p);
             }
 
             case "input" -> {
@@ -142,7 +142,7 @@ public abstract class Interpreter {
 
     private static MemoryWord getVariable(String varName, ProcessMemoryImage p){
         int processID = p.getPCB().getProcessID();
-        return Memory.getMemoryWordByName(varName,processID);
+        return MemoryManager.getMemoryWordByName(varName,processID);
     }
 
 

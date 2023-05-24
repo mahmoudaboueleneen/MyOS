@@ -120,7 +120,7 @@ public class Scheduler {
 
     private static void printMemoryStartingState(){
         System.out.println("MEMORY STARTING STATE:");
-        Memory.printMemory();
+        MemoryManager.printMemory();
     }
 
 
@@ -182,7 +182,7 @@ public class Scheduler {
     public static void moveProcessFromDiskToMemory(ProcessMemoryImage p){
         while (!p.canFitInMemory()) {
             swapOutToDisk(getProcessToSwapOutToDisk());
-            Memory.compactMemory();
+            MemoryManager.compactMemory();
         }
         int[] bounds = p.getNewPossibleMemoryBounds();
         int newLowerBound = bounds[0];
@@ -229,7 +229,7 @@ public class Scheduler {
         p.setTempLocation("---");
         p.setLowerMemoryBoundary(newLowerBound);
         p.setUpperMemoryBoundary(newUpperBound);
-        Memory.fillMemoryPartitionWithProcess(p);
+        MemoryManager.fillMemoryPartitionWithProcess(p);
         inMemoryProcessMemoryImages.add(p);
         System.out.println("PROCESS SWAPPED IN FROM ISK: PID = " + p.getPCB().getProcessID() + "\n");
     }

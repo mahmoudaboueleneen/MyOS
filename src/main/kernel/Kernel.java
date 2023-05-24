@@ -186,7 +186,7 @@ public abstract class Kernel {
     private static void makeSpaceForProcessInMemoryIfNeeded(ProcessMemoryImage p){
         while(!p.canFitInMemory()){
             Scheduler.swapOutToDisk( Scheduler.getProcessToSwapOutToDisk());
-            Memory.compactMemory();
+            MemoryManager.compactMemory();
         }
     }
 
@@ -197,7 +197,7 @@ public abstract class Kernel {
 
 
     private static void allocateMemoryPartition(int lowerBound, int upperBound){
-        Memory.allocateMemoryPartition(lowerBound, upperBound);
+        MemoryManager.allocateMemoryPartition(lowerBound, upperBound);
     }
 
 
@@ -213,7 +213,7 @@ public abstract class Kernel {
 
 
     private static void finalizeProcessCreation(ProcessMemoryImage p){
-        Memory.fillMemoryPartitionWithProcess(p);
+        MemoryManager.fillMemoryPartitionWithProcess(p);
         Scheduler.getInMemoryProcesses().add(p);
     }
 

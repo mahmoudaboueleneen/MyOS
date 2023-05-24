@@ -1,6 +1,6 @@
 package main.kernel;
 
-import main.elements.Memory;
+import main.elements.MemoryManager;
 import main.elements.MemoryWord;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -53,12 +53,12 @@ public abstract class SystemCallHandler {
 
 
     public static MemoryWord readDataFromMemory(int address){
-        return Memory.getMemoryArray()[address];
+        return MemoryManager.getMemoryArray()[address];
     }
 
 
     public static void writeDataToMemory(int address, MemoryWord word){
-        Memory.writeMemoryWord(address, word);
+        MemoryManager.writeMemoryWord(address, word);
     }
 
 

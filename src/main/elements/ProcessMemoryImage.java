@@ -48,7 +48,7 @@ public class ProcessMemoryImage implements Serializable {
         int newValue = this.getPCB().getProgramCounter() + 1;
         this.getPCB().setProgramCounter(newValue);
 
-        MemoryWord word = Memory.getMemoryWordByName("PROGRAM_COUNTER", this.getPCB().getProcessID());
+        MemoryWord word = MemoryManager.getMemoryWordByName("PROGRAM_COUNTER", this.getPCB().getProcessID());
         if (word == null)
             return;
         word.setVariableData(newValue);
@@ -74,7 +74,7 @@ public class ProcessMemoryImage implements Serializable {
         boolean canFitInMemory = false;
         int lowerBound = 0;
         int processMemorySize = this.getProcessMemorySize();
-        boolean[] reserved = Memory.getReservedArray();
+        boolean[] reserved = MemoryManager.getReservedArray();
         for(int i = 0; i < reserved.length; i++) {
             if(!reserved[i]){
                 lowerBound = i;
@@ -82,7 +82,7 @@ public class ProcessMemoryImage implements Serializable {
                 break;
             }
         }
-        if(lowerBound + processMemorySize > Memory.getMemoryArray().length)
+        if(lowerBound + processMemorySize > MemoryManager.getMemoryArray().length)
             canFitInMemory = false; // the actual permanent assignment
 
         return canFitInMemory;
@@ -93,7 +93,7 @@ public class ProcessMemoryImage implements Serializable {
         int lowerBound = 0;
         int upperBound = 0;
         int processMemorySize = this.getProcessMemorySize();
-        boolean[] reserved = Memory.getReservedArray();
+        boolean[] reserved = MemoryManager.getReservedArray();
         for(int i = 0; i < reserved.length; i++) {
             if(!reserved[i]){
                 lowerBound = i;
@@ -101,7 +101,7 @@ public class ProcessMemoryImage implements Serializable {
                 break;
             }
         }
-        if(lowerBound + processMemorySize > Memory.getMemoryArray().length)
+        if(lowerBound + processMemorySize > MemoryManager.getMemoryArray().length)
             canFitInMemory = false;
 
         if(canFitInMemory){
@@ -114,7 +114,7 @@ public class ProcessMemoryImage implements Serializable {
     public void setProcessState(ProcessState processState) {
         this.getPCB().setProcessState(processState);
 
-        MemoryWord word = Memory.getMemoryWordByName("PROCESS_STATE", this.getPCB().getProcessID());
+        MemoryWord word = MemoryManager.getMemoryWordByName("PROCESS_STATE", this.getPCB().getProcessID());
         if (word == null)
             return;
         word.setVariableData(processState);
@@ -123,7 +123,7 @@ public class ProcessMemoryImage implements Serializable {
     public void setLowerMemoryBoundary(int newLowerBound) {
         this.getPCB().setLowerMemoryBoundary(newLowerBound);
 
-        MemoryWord word = Memory.getMemoryWordByName("LOWER_MEM_BOUND", this.getPCB().getProcessID());
+        MemoryWord word = MemoryManager.getMemoryWordByName("LOWER_MEM_BOUND", this.getPCB().getProcessID());
         if (word == null)
             return;
         word.setVariableData(newLowerBound);
@@ -132,7 +132,7 @@ public class ProcessMemoryImage implements Serializable {
     public void setUpperMemoryBoundary(int newUpperBound) {
         this.getPCB().setUpperMemoryBoundary(newUpperBound);
 
-        MemoryWord word = Memory.getMemoryWordByName("UPPER_MEM_BOUND", this.getPCB().getProcessID());
+        MemoryWord word = MemoryManager.getMemoryWordByName("UPPER_MEM_BOUND", this.getPCB().getProcessID());
         if (word == null)
             return;
         word.setVariableData(newUpperBound);
@@ -141,7 +141,7 @@ public class ProcessMemoryImage implements Serializable {
     public void setTempLocation(String newTempLocation) {
         this.getPCB().setTempLocation(newTempLocation);
 
-        MemoryWord word = Memory.getMemoryWordByName("TEMP_LOCATION", this.getPCB().getProcessID());
+        MemoryWord word = MemoryManager.getMemoryWordByName("TEMP_LOCATION", this.getPCB().getProcessID());
         if (word == null)
             return;
         word.setVariableData(newTempLocation);
