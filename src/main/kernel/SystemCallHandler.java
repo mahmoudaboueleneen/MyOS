@@ -13,7 +13,7 @@ public class SystemCallHandler {
 
     public SystemCallHandler(){}
 
-    public synchronized String readDataFromFileOnDisk(String fileName){
+    public synchronized static String readDataFromFileOnDisk(String fileName){
         StringBuilder sb = new StringBuilder();
         try {
             File myObj = new File("src/generated_files/"+fileName);
@@ -30,7 +30,7 @@ public class SystemCallHandler {
         return sb.toString();
     }
 
-    public synchronized void writeDataToFileOnDisk(String fileName, String data){
+    public synchronized static void writeDataToFileOnDisk(String fileName, String data){
         try {
             FileWriter myWriter = new FileWriter("src/generated_files/"+fileName);
             myWriter.write(data);
@@ -41,20 +41,20 @@ public class SystemCallHandler {
         }
     }
 
-    public synchronized void printToScreen(String data){
+    public synchronized static void printToScreen(String data){
         System.out.println(data);
     }
 
-    public synchronized String takeInputFromUser(){
+    public synchronized static String takeInputFromUser(){
         Scanner sc = new Scanner(System.in);
         return sc.nextLine();
     }
 
-    public synchronized MemoryWord readDataFromMemory(int address){
+    public synchronized static MemoryWord readDataFromMemory(int address){
         return Memory.getMemoryArray()[address];
     }
 
-    public synchronized void writeDataToMemory(int address, MemoryWord word){
+    public synchronized static void writeDataToMemory(int address, MemoryWord word){
         Memory.writeMemoryWord(address, word);
     }
 

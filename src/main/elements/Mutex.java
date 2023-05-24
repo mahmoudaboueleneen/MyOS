@@ -34,7 +34,7 @@ public class Mutex {
         else {
 //          Block process
             this.blockedQueue.add(p);
-            p.getPCB().setProcessState(ProcessState.BLOCKED);
+            p.setProcessState(ProcessState.BLOCKED);
             Scheduler.getBlockedQueue().add(p);
             System.out.print("Scheduling event occurred: Process blocked.\n");
             Scheduler.printQueues();
@@ -56,7 +56,7 @@ public class Mutex {
                 ProcessMemoryImage releasedPMI = this.blockedQueue.remove();
                 Scheduler.getBlockedQueue().remove(releasedPMI);
                 Scheduler.getReadyQueue().add(releasedPMI);
-                releasedPMI.getPCB().setProcessState(ProcessState.READY);
+                releasedPMI.setProcessState(ProcessState.READY);
 //              Reassign the resource to the newly unblocked process
                 this.ownerID = releasedPMI.getPCB().getProcessID();
             }

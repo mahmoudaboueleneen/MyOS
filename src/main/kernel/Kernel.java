@@ -38,6 +38,10 @@ public class Kernel {
 
     public static void initDefaultConditions(){
         scheduledArrivalTimes = new ArrayList<>();
+        scheduledArrivalTimes.add(0);
+        scheduledArrivalTimes.add(1);
+        scheduledArrivalTimes.add(4);
+
         scheduledArrivalFileLocations = new ArrayList<>();
         scheduledArrivalFileLocations.add("src/program_files/Program_1.txt");
         scheduledArrivalFileLocations.add("src/program_files/Program_2.txt");
@@ -46,7 +50,8 @@ public class Kernel {
 
         System.out.println("Inputs received, initializing...");
 
-        scheduler.executeRoundRobin();
+        while(true)
+            scheduler.executeRoundRobin();
     }
 
     public static void init(){
@@ -133,26 +138,26 @@ public class Kernel {
         int lowerBound = bounds[0];
         int upperBound = bounds[1];
 
-        System.out.println("    Acquiring unique PID...");
+        //System.out.println("    Acquiring unique PID...");
         int processID = Scheduler.getNextProcessID();
 
-        System.out.println("    Allocating memory space...");
+        //System.out.println("    Allocating memory space...");
         Memory.allocateMemoryPartition(lowerBound, upperBound);
 
-        System.out.println("    Initializing PCB...");
+        //System.out.println("    Initializing PCB...");
         ProcessControlBlock pcb = new ProcessControlBlock(processID, lowerBound, upperBound);
 
-        System.out.println("    Linking to scheduling queue...\n");
+        //System.out.println("    Linking to scheduling queue...\n");
         p.setProcessControlBlock(pcb);
         Scheduler.addArrivedProcess(p);
         Kernel.getScheduler().addToReadyQueue(p);
         //Kernel.getScheduler().addBurstTime( (Integer) canFitWhereInMemory[3] );
 
-        System.out.println("    Finalizing process creation...");
-        Memory.fillMemoryPartition(p, lowerBound, upperBound);
+        //System.out.println("    Finalizing process creation...");
+        Memory.fillMemoryPartitionWithProcess(p);
         Scheduler.getInMemoryProcesses().add(p);
 
-        System.out.println("    Process created successfully!\n");
+        //System.out.println("    Process created successfully!\n");
     }
 
     public static Mutex getUserInputMutex() {

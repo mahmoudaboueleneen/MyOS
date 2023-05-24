@@ -1,16 +1,17 @@
 package main.elements;
 
+import main.exceptions.VariableAssignmentException;
 import main.kernel.Kernel;
 import main.kernel.Scheduler;
 import main.kernel.SystemCallHandler;
 
 public class Memory {
     private static MemoryWord[] memoryArray;
-    private static boolean[] occupiedArray;
+    private static boolean[] reservedArray;
 
     public Memory(){
         memoryArray = new MemoryWord[40];
-        occupiedArray = new boolean[40];
+        reservedArray = new boolean[40];
     }
 
     public static synchronized void compactMemory(){
@@ -30,48 +31,56 @@ public class Memory {
 
     public static synchronized void clearMemoryWord(int address){
         memoryArray[address] = null;
-        occupiedArray[address] = false;
+        reservedArray[address] = false;
     }
 
     private static void fillMemoryWithProcessesWhichShouldBeInIt(){
-        int nextStartingIndex = 0;
+        int i = 0;
         for(ProcessMemoryImage p : Scheduler.getInMemoryProcessMemoryImages()){
-            int lowerBound = nextStartingIndex;
-            int upperBound = lowerBound + p.getProcessMemorySize()-1;
-            fillMemoryPartition(p, lowerBound, upperBound);
-            nextStartingIndex = upperBound + 1;
+            p.setLowerMemoryBoundary(i);
+            p.setUpperMemoryBoundary(i + Kernel.getPCBSize() + Kernel.getDataSize() + p.getInstructions().length);
+            fillMemoryPartitionWithProcess(p);
+
+            i++;
         }
     }
 
-    public static synchronized void fillMemoryPartition(ProcessMemoryImage p, int lowerMemoryBound, int upperMemoryBound) {
-        // '---' means reserved, acts as placeholder.
+    public static synchronized void fillMemoryPartitionWithProcess(ProcessMemoryImage p) {
+        fillPCBMemorySpace(p);
+        fillDataMemorySpace(p);
+        fillInstructionsMemorySpace(p);
+    }
 
-        writeMemoryWord(lowerMemoryBound, new MemoryWord("PROCESS_ID", p.getPCB().getProcessID()) );
-        writeMemoryWord(lowerMemoryBound + 1, new MemoryWord("PROCESS_STATE", p.getPCB().getProcessState()) );
-        writeMemoryWord(lowerMemoryBound + 2, new MemoryWord("PROGRAM_COUNTER", p.getPCB().getProgramCounter()) );
-        writeMemoryWord(lowerMemoryBound + 3, new MemoryWord("LOWER_MEM_BOUND", lowerMemoryBound) );
-        writeMemoryWord(lowerMemoryBound + 4, new MemoryWord("UPPER_MEM_BOUND", upperMemoryBound) );
-        writeMemoryWord(lowerMemoryBound + 5, new MemoryWord("TEMP_LOCATION", p.getPCB().getTempLocation()==null?"---":p.getPCB().getTempLocation()) );
+    private static synchronized void fillPCBMemorySpace(ProcessMemoryImage p){
+        int i = p.getPCB().getLowerMemoryBoundary();
+        writeMemoryWord(i, new MemoryWord("PROCESS_ID", p.getPCB().getProcessID()) );
+        writeMemoryWord(i+1, new MemoryWord("PROCESS_STATE", p.getPCB().getProcessState()) );
+        writeMemoryWord(i+2, new MemoryWord("PROGRAM_COUNTER", p.getPCB().getProgramCounter()) );
+        writeMemoryWord(i+3, new MemoryWord("LOWER_MEM_BOUND", p.getPCB().getLowerMemoryBoundary()) );
+        writeMemoryWord(i+4, new MemoryWord("UPPER_MEM_BOUND", p.getPCB().getUpperMemoryBoundary()) );
+        writeMemoryWord(i+5, new MemoryWord("TEMP_LOCATION", p.getPCB().getTempLocation()==null?"---":p.getPCB().getTempLocation()) );
+    }
 
-        int i = lowerMemoryBound + 6;
+    private static synchronized void fillDataMemorySpace(ProcessMemoryImage p){
+        int i = p.getPCB().getLowerMemoryBoundary() + Kernel.getPCBSize();
         for(MemoryWord var : p.getVariables()){
-            if(var == null)
-                writeMemoryWord(i, new MemoryWord("---", "---"));
-            else
-                writeMemoryWord(i, new MemoryWord(var.getVariableName(), var.getVariableData()));
+            if(var == null) writeMemoryWord(i, new MemoryWord("---", "---"));
+            else writeMemoryWord(i, new MemoryWord(var.getVariableName(), var.getVariableData()));
             i++;
         }
+    }
 
-        int j = lowerMemoryBound + 9;
+    private static synchronized void fillInstructionsMemorySpace(ProcessMemoryImage p){
+        int i = p.getPCB().getLowerMemoryBoundary() + Kernel.getPCBSize() + Kernel.getDataSize();
         for(String instruction : p.getInstructions()){
-            writeMemoryWord(j, new MemoryWord("INSTRUCTION", instruction));
-            j++;
+            writeMemoryWord(i, new MemoryWord("INSTRUCTION", instruction));
+            i++;
         }
     }
 
     public static synchronized void writeMemoryWord(int address, MemoryWord word) {
         memoryArray[address] = word;
-        occupiedArray[address] = true;
+        reservedArray[address] = true;
     }
 
     public static synchronized MemoryWord readMemoryWord(int address) {
@@ -91,7 +100,7 @@ public class Memory {
     }
 
     public static synchronized void allocateMemoryWord(int address){
-        occupiedArray[address] = true;
+        reservedArray[address] = true;
     }
 
     public static synchronized void deallocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
@@ -101,7 +110,7 @@ public class Memory {
     }
 
     public static synchronized void deallocateMemoryWord(int address){
-        occupiedArray[address] = false;
+        reservedArray[address] = false;
     }
 
     @Override
@@ -140,28 +149,49 @@ public class Memory {
         return memoryArray;
     }
 
-    public boolean[] getOccupied() {
-        return occupiedArray;
+    public boolean[] getReservedArray() {
+        return reservedArray;
     }
 
     public synchronized static boolean isMemoryWordOccupied(int address) {
-        return occupiedArray[address];
+        return reservedArray[address];
     }
 
-    public synchronized static MemoryWord findMemoryWordByName(String givenVariableName, int processID){
+    public synchronized static MemoryWord getMemoryWordByName(String givenVariableName, int processID){
+
         for (int i = 0; i < memoryArray.length; i++){
-            if (isIndexAtTheGivenProcessID(i, processID)){
+            if ( isIndexAtTheGivenProcessID(i, processID) ) {
                 for (int j = i + Kernel.getPCBSize(); j < i + Kernel.getPCBSize() + Kernel.getDataSize(); j++){
                     if (memoryArray[j].getVariableName().equals(givenVariableName))
-                        return readMemoryWord(j);
+                        return SystemCallHandler.readDataFromMemory(j);
                 }
             }
         }
         return null;
     }
 
+    public synchronized static void assignMemoryWordValueByName(String varName, String varData, ProcessMemoryImage p) throws VariableAssignmentException {
+        int processID = p.getPCB().getProcessID();
+
+        for (int i = 0; i < memoryArray.length; i++){
+            if( isIndexAtTheGivenProcessID(i, processID)) {
+                for (int j = i+Kernel.getPCBSize(); j < i+Kernel.getPCBSize()+Kernel.getDataSize(); j++){
+                    if (memoryArray[j].getVariableName().equals(varName))
+                        throw new VariableAssignmentException();
+
+                    if (memoryArray[j].getVariableName().equals("---")) {
+                        MemoryWord word = new MemoryWord(varName, varData);
+                        SystemCallHandler.writeDataToMemory(j, word);
+                        p.addVariable(word);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
     private static boolean isIndexAtTheGivenProcessID(int i, int processID){
-        return Memory.isMemoryWordOccupied(i) &&
+        return Memory.isMemoryWordOccupied(i) && memoryArray[i]!=null &&
                 memoryArray[i].getVariableName().equals("PROCESS_ID") &&
                 memoryArray[i].getVariableData().equals(processID);
     }

@@ -44,7 +44,15 @@ public class ProcessMemoryImage implements Serializable {
         return true;
     }
 
-    public void incrementPC(){this.getPCB().setProgramCounter( this.getPCB().getProgramCounter() + 1);}
+    public void incrementPC(){
+        int newValue = this.getPCB().getProgramCounter() + 1;
+        this.getPCB().setProgramCounter(newValue);
+
+        MemoryWord word = Memory.getMemoryWordByName("PROGRAM_COUNTER", this.getPCB().getProcessID());
+        if (word == null)
+            return;
+        word.setVariableData(newValue);
+    }
 
     @Override
     public String toString(){
@@ -66,9 +74,9 @@ public class ProcessMemoryImage implements Serializable {
         boolean canFitInMemory = false;
         int lowerBound = 0;
         int processMemorySize = this.getProcessMemorySize();
-        boolean[] occupied = Kernel.getMemory().getOccupied();
-        for(int i = 0; i < occupied.length; i++) {
-            if(!occupied[i]){
+        boolean[] reserved = Kernel.getMemory().getReservedArray();
+        for(int i = 0; i < reserved.length; i++) {
+            if(!reserved[i]){
                 lowerBound = i;
                 canFitInMemory = true; // temporary assignment, check after
                 break;
@@ -85,9 +93,9 @@ public class ProcessMemoryImage implements Serializable {
         int lowerBound = 0;
         int upperBound = 0;
         int processMemorySize = this.getProcessMemorySize();
-        boolean[] occupied = Kernel.getMemory().getOccupied();
-        for(int i = 0; i < occupied.length; i++) {
-            if(!occupied[i]){
+        boolean[] reserved = Kernel.getMemory().getReservedArray();
+        for(int i = 0; i < reserved.length; i++) {
+            if(!reserved[i]){
                 lowerBound = i;
                 canFitInMemory = true;
                 break;
@@ -98,13 +106,45 @@ public class ProcessMemoryImage implements Serializable {
 
         if(canFitInMemory){
             upperBound = lowerBound + processMemorySize - 1;
-            int[] bounds = new int[]{lowerBound,upperBound};
-            return bounds;
+            return new int[]{lowerBound,upperBound};
         }
         return null; // shouldn't be reached
     }
 
+    public synchronized void setProcessState(ProcessState processState) {
+        this.getPCB().setProcessState(processState);
 
+        MemoryWord word = Memory.getMemoryWordByName("PROCESS_STATE", this.getPCB().getProcessID());
+        if (word == null)
+            return;
+        word.setVariableData(processState);
+    }
 
+    public synchronized void setLowerMemoryBoundary(int newLowerBound) {
+        this.getPCB().setLowerMemoryBoundary(newLowerBound);
+
+        MemoryWord word = Memory.getMemoryWordByName("LOWER_MEM_BOUND", this.getPCB().getProcessID());
+        if (word == null)
+            return;
+        word.setVariableData(newLowerBound);
+    }
+
+    public synchronized void setUpperMemoryBoundary(int newUpperBound) {
+        this.getPCB().setUpperMemoryBoundary(newUpperBound);
+
+        MemoryWord word = Memory.getMemoryWordByName("UPPER_MEM_BOUND", this.getPCB().getProcessID());
+        if (word == null)
+            return;
+        word.setVariableData(newUpperBound);
+    }
+
+    public synchronized void setTempLocation(String newTempLocation) {
+        this.getPCB().setTempLocation(newTempLocation);
+
+        MemoryWord word = Memory.getMemoryWordByName("TEMP_LOCATION", this.getPCB().getProcessID());
+        if (word == null)
+            return;
+        word.setVariableData(newTempLocation);
+    }
 
 }

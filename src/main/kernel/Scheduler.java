@@ -2,6 +2,8 @@ package main.kernel;
 
 import main.elements.*;
 import main.exceptions.InvalidInstructionException;
+import main.exceptions.VariableAssignmentException;
+
 import java.io.*;
 import java.util.*;
 
@@ -9,7 +11,6 @@ import java.util.*;
 public class Scheduler {
     // Lists
     private static ArrayList<ProcessMemoryImage> processList;
-      //private static ArrayList<Integer> burstTimesList;
     private static ArrayList<ProcessMemoryImage> inMemoryProcessMemoryImages;
     // Queues
     private static Queue<ProcessMemoryImage> readyQueue;
@@ -23,6 +24,7 @@ public class Scheduler {
     private final List<String> scheduledArrivalFileLocations;
     private boolean firstArrivalsHandled;
     private static List<String[]> executedInnerInstructions;
+    //private static ArrayList<Integer> burstTimesList;
 
     public Scheduler(int instructionsPerTimeSlice, List<Integer> scheduledArrivalTimes, List<String> scheduledArrivalFileLocations){
         processList = new ArrayList<>();
@@ -34,6 +36,7 @@ public class Scheduler {
         maximumUsedPID = -1;
         this.scheduledArrivalTimes = scheduledArrivalTimes;
         this.scheduledArrivalFileLocations = scheduledArrivalFileLocations;
+        executedInnerInstructions = new ArrayList<>();
     }
 
     public synchronized void executeRoundRobin(){
@@ -45,12 +48,13 @@ public class Scheduler {
         if(readyQueue.isEmpty())
             finalizeProgram();
 
+        ProcessMemoryImage nextInLine = readyQueue.element();
+
+        if (!inMemoryProcessMemoryImages.contains(nextInLine))
+            moveProcessToMemory(nextInLine);
+
         assignNewRunningProcess();
-
         ProcessMemoryImage runningPMI = currentRunningProcessMemoryImage;
-
-        if (!inMemoryProcessMemoryImages.contains( runningPMI ))
-            moveCurrentRunningProcessToMemory();
 
         while(instrsLeftInTimeSlice > 0) {
             printCurrentRunningProcess();
@@ -87,10 +91,9 @@ public class Scheduler {
     }
 
     private void checkAndHandleProcessArrivals(){
-        System.out.println("\n*************************************************************" +
-                "*************************************************************");
+        System.out.println("\n**************************************************************************************************************************");
         System.out.println("CURRENT INSTRUCTION CYCLE = " + instructionCycle + " instruction(s) executed:\n");
-        System.out.println(Kernel.getMemory());
+        //System.out.println(Kernel.getMemory());
 
         Iterator<Integer> iterator = scheduledArrivalTimes.iterator();
         while(iterator.hasNext()){
@@ -110,20 +113,18 @@ public class Scheduler {
         System.exit(0);
     }
 
-
     private synchronized void assignNewRunningProcess(){
         currentRunningProcessMemoryImage = readyQueue.remove();
-        currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.RUNNING);
-
+        currentRunningProcessMemoryImage.setProcessState(ProcessState.RUNNING);
         System.out.println("Scheduling event occurred: Process chosen to run.");
         printQueues();
-    }
 
+        System.out.println(Kernel.getMemory());
+    }
 
     private synchronized void moveCurrentRunningProcessToMemory() {
         moveProcessToMemory(currentRunningProcessMemoryImage);
     }
-
 
     public synchronized static void moveProcessToMemory(ProcessMemoryImage p){
         while (!p.canFitInMemory()) {
@@ -131,12 +132,10 @@ public class Scheduler {
             Memory.compactMemory();
         }
         int[] bounds = p.getNewPossibleMemoryBounds();
-        int lowerBound = bounds[0];
-        int upperBound = bounds[1];
-        swapInFromDisk(p.getPCB().getTempLocation(), lowerBound, upperBound);
-        inMemoryProcessMemoryImages.add(p);
+        int newLowerBound = bounds[0];
+        int newUpperBound = bounds[1];
+        swapInFromDisk(p.getPCB().getTempLocation(), newLowerBound, newUpperBound);
     }
-
 
     public synchronized static ProcessMemoryImage getProcessToSwapOutToDisk(){
         ProcessMemoryImage p = null;
@@ -147,39 +146,50 @@ public class Scheduler {
         return p;
     }
 
-
     public static synchronized void swapOutToDisk(ProcessMemoryImage p){
-        String location = "src/temp/PID_" + p.getPCB().getProcessID() + ".ser";
+        String location = "src/temp/PID_"+ p.getPCB().getProcessID() +".ser";
+        p.setTempLocation(location);
+        serializeProcess(p, location);
 
-        // set the temp location var in the PCB object,
-        p.getPCB().setTempLocation(location);
+        // Clear memory partition
+        Memory.clearMemoryPartition(p.getPCB().getLowerMemoryBoundary(), p.getPCB().getUpperMemoryBoundary());
 
-        // Serialize to temp location,
-        try {
-            FileOutputStream fileOut = new FileOutputStream(location);
-            ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(p);
-            out.close();
-            fileOut.close();
-            System.out.printf("Serialized data is saved in src/temp/PID_" + p.getPCB().getProcessID() + ".ser\n\n");
-        } catch (IOException i) {
-            i.printStackTrace();
-        }
-
-        // remove process from tracked in-memory processes in the scheduler.
+        // Remove process from tracked inMemoryProcessMemoryImages
         Iterator<ProcessMemoryImage> iterator = inMemoryProcessMemoryImages.iterator();
         while(iterator.hasNext()){
             ProcessMemoryImage temp = iterator.next();
             if(temp.getPCB().getProcessID() == p.getPCB().getProcessID())
                 iterator.remove();
         }
+
+        System.out.println("Process with PID = "+ p.getPCB().getProcessID() +" swapped out to disk.\n");
     }
 
+    public static synchronized void swapInFromDisk(String location, int newLowerBound, int newUpperBound){
+        ProcessMemoryImage p = deserializeProcess(location);
+        p.setTempLocation("---");
+        p.setLowerMemoryBoundary(newLowerBound);
+        p.setUpperMemoryBoundary(newUpperBound);
+        Memory.fillMemoryPartitionWithProcess(p);
+        inMemoryProcessMemoryImages.add(p);
 
-    public static synchronized void swapInFromDisk(String location, int lowerBound, int upperBound){
+        System.out.println("Process with PID = "+ p.getPCB().getProcessID() +" swapped in from disk.\n");
+    }
+
+    private static synchronized void serializeProcess(ProcessMemoryImage p, String location){
+        try {
+            FileOutputStream fileOut = new FileOutputStream(location);
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(p);
+            out.close();
+            fileOut.close();
+        } catch (IOException i) {
+            i.printStackTrace();
+        }
+    }
+
+    private static synchronized ProcessMemoryImage deserializeProcess(String location){
         ProcessMemoryImage p = null;
-
-        // Deserialize
         try {
             FileInputStream fileIn = new FileInputStream(location);
             ObjectInputStream in = new ObjectInputStream(fileIn);
@@ -189,35 +199,23 @@ public class Scheduler {
         } catch (IOException | ClassNotFoundException e ) {
             e.printStackTrace();
         }
-
-        // set the temp location var in the PCB object,
-        p.getPCB().setTempLocation("---");
-
-        // fill memory with process,
-        Memory.fillMemoryPartition(p, lowerBound, upperBound);
-
-        // add process to tracked in-memory processes in the scheduler.
-        inMemoryProcessMemoryImages.add(p);
+        return p;
     }
-
 
     private synchronized void preemptCurrentRunningProcess() {
         readyQueue.add(currentRunningProcessMemoryImage);
-        currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.READY);
+        currentRunningProcessMemoryImage.setProcessState(ProcessState.READY);
     }
-
 
     private synchronized static boolean hasNestedInstruction(String instruction){
         String[] words = instruction.split(" ");
         return words[0].equals("assign") && words[2].equals("readFile");
     }
 
-
     private synchronized static String getInnerInstruction(String fullInstruction){
         String[] words = fullInstruction.split(" ");
         return words[2] + " " + words[3];
     }
-
 
     private synchronized static boolean isInnerInstructionAlreadyExecuted(String instruction){
         for(String[] pair : executedInnerInstructions){
@@ -237,26 +235,29 @@ public class Scheduler {
         executedInnerInstructions.add(instrAndInnerInstrPair);
     }
 
-
     private void executeInstruction(String instruction){
         try {
             Interpreter.interpretAndIncrementInstructionCycle(instruction, currentRunningProcessMemoryImage);
         }
-        catch (InvalidInstructionException e) {
+        catch (InvalidInstructionException | VariableAssignmentException e) {
             throw new RuntimeException(e.getMessage());
         }
     }
 
-
     private synchronized void finishCurrentRunningProcess(){
-        currentRunningProcessMemoryImage.getPCB().setProcessState(ProcessState.FINISHED);
+        currentRunningProcessMemoryImage.setProcessState(ProcessState.FINISHED);
         processList.remove(currentRunningProcessMemoryImage);
         inMemoryProcessMemoryImages.remove(currentRunningProcessMemoryImage);
+        readyQueue.remove(currentRunningProcessMemoryImage);
+        blockedQueue.remove(currentRunningProcessMemoryImage);
+
+        Memory.clearMemoryPartition(currentRunningProcessMemoryImage.getPCB().getLowerMemoryBoundary(),
+                currentRunningProcessMemoryImage.getPCB().getUpperMemoryBoundary());
+        Memory.compactMemory();
 
         System.out.println("Scheduling event occurred: Process finished.");
         printQueues();
     }
-
 
     public static synchronized int getNextProcessID() {
         final int MAX_POSSIBLE_PID = 100;
@@ -274,16 +275,13 @@ public class Scheduler {
         return maximumUsedPID;
     }
 
-
     public static void incrementInstructionCycleAndPrintMemory(){
         instructionCycle++;
     }
 
-
     public synchronized void addToReadyQueue(ProcessMemoryImage p) {
         readyQueue.add(p);
-        p.getPCB().setProcessState(ProcessState.READY);
-
+        p.setProcessState(ProcessState.READY);
         System.out.println("Scheduling event occurred: Process added to ready queue.");
         printQueues();
     }
@@ -310,8 +308,6 @@ public class Scheduler {
         processList.add(p);
     }
 
-    //public synchronized void addBurstTime(int linesOfCode) {burstTimesList.add(linesOfCode);}
-
     public static ArrayList<ProcessMemoryImage> getInMemoryProcessMemoryImages() {
         return inMemoryProcessMemoryImages;
     }
@@ -328,5 +324,5 @@ public class Scheduler {
         return inMemoryProcessMemoryImages;
     }
 
-
+    //public synchronized void addBurstTime(int linesOfCode) {burstTimesList.add(linesOfCode);}
 }

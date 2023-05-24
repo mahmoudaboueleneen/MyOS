@@ -24,7 +24,6 @@ public class ProcessControlBlock implements Serializable {
 
         public synchronized ProcessState getProcessState() {
             return processState;
-
         }
 
         public synchronized void setProcessState(ProcessState processState) {
