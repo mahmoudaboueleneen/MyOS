@@ -16,7 +16,7 @@ public class SystemCallHandler {
     public synchronized static String readDataFromFileOnDisk(String fileName){
         StringBuilder sb = new StringBuilder();
         try {
-            File myObj = new File("src/generated_files/"+fileName);
+            File myObj = new File("src/generated_files/" + fileName);
             Scanner myReader = new Scanner(myObj);
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
@@ -32,9 +32,10 @@ public class SystemCallHandler {
 
     public synchronized static void writeDataToFileOnDisk(String fileName, String data){
         try {
-            FileWriter myWriter = new FileWriter("src/generated_files/"+fileName);
+            FileWriter myWriter = new FileWriter("src/generated_files/" + fileName);
             myWriter.write(data);
             myWriter.close();
+            System.out.println("Generated file src/generated_files/" + fileName);
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();

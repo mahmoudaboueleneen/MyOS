@@ -10,9 +10,21 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.List;
 
 public class Interpreter {
-    private static String temp;
+    private static String[] inputReturnedContents;
+    private static String[] readFileReturnedContents;
+
+    public Interpreter(){
+        // One cell for each process, holds return value of 'input' instruction
+        // PID 0 gets cell 0, PID 1 gets cell 1, PID 2 gets cell 2.
+        inputReturnedContents = new String[3];
+
+        // One cell for each process, holds return value of 'readFile' instruction
+        // PID 0 gets cell 0, PID 1 gets cell 1, PID 2 gets cell 2.
+        readFileReturnedContents = new String[3];
+    }
 
     public synchronized String[] getInstructionsFromFile(String filePath){
         ArrayList<String> res = new ArrayList<>();
@@ -67,7 +79,7 @@ public class Interpreter {
     }
 
     //TODO: Change words[n] to nthWord.
-    public static synchronized void interpret(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException, VariableAssignmentException {
+    public static synchronized void interpret(String instruction, ProcessMemoryImage p) throws InvalidInstructionException, VariableAssignmentException {
         String[] words = instruction.split(" ");
         String firstWord = words[0];
 
@@ -75,7 +87,7 @@ public class Interpreter {
             case "print" -> {
                 if (words.length != 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, print statement requires 1 parameter");
-                MemoryWord word = getVariable(words[1],currentRunningProcessMemoryImage);
+                MemoryWord word = getVariable(words[1],p);
                 String x = (String) word.getVariableData();
                 SystemCallHandler.printToScreen(x);
             }
@@ -87,27 +99,27 @@ public class Interpreter {
                 if (words[2].equals("input")) {
                     if(words.length != 3)
                        throw new InvalidInstructionException("Invalid instruction syntax, should be 'assign VAR_NAME input'");
-                    Memory.initializeVariableInMemory(words[1], temp, currentRunningProcessMemoryImage);
+                    Memory.initializeVariableInMemory(words[1], inputReturnedContents[p.getPCB().getProcessID()], p);
                 }
                 else if (words[2].equals("readFile")) {
                     if(words.length != 4)
                         throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
-                    Memory.initializeVariableInMemory(words[1], temp, currentRunningProcessMemoryImage);
+                    Memory.initializeVariableInMemory(words[1], inputReturnedContents[p.getPCB().getProcessID()], p);
                 }
                 else
-                    Memory.initializeVariableInMemory(words[1], words[2], currentRunningProcessMemoryImage);
+                    Memory.initializeVariableInMemory(words[1], words[2], p);
             }
 
             case "input" -> {
                 SystemCallHandler.printToScreen("Please enter a value:");
-                temp = SystemCallHandler.takeInputFromUser();
+                inputReturnedContents[p.getPCB().getProcessID()] = SystemCallHandler.takeInputFromUser();
             }
 
             case "writeFile" -> {
                 if (words.length != 3)
                     throw new InvalidInstructionException("Invalid instruction syntax, writeFile statement requires 2 parameters.");
-                MemoryWord memWord1 = getVariable(words[1],currentRunningProcessMemoryImage);
-                MemoryWord memWord2 = getVariable(words[2],currentRunningProcessMemoryImage);
+                MemoryWord memWord1 = getVariable(words[1],p);
+                MemoryWord memWord2 = getVariable(words[2],p);
 
                 SystemCallHandler.writeDataToFileOnDisk((String) memWord1.getVariableData(), (String) memWord2.getVariableData());
             }
@@ -115,15 +127,15 @@ public class Interpreter {
             case "readFile" -> {
                 if (words.length != 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
-                MemoryWord word = getVariable(words[1],currentRunningProcessMemoryImage);
-                temp = SystemCallHandler.readDataFromFileOnDisk((String) word.getVariableData());
+                MemoryWord word = getVariable(words[1],p);
+                readFileReturnedContents[p.getPCB().getProcessID()] = SystemCallHandler.readDataFromFileOnDisk((String) word.getVariableData());
             }
 
             case "printFromTo" -> {
                 if (words.length < 3)
                     throw new InvalidInstructionException("Invalid instruction syntax, assign statement requires 2 parameters.");
-                MemoryWord memWord1 = getVariable(words[1],currentRunningProcessMemoryImage);
-                MemoryWord memWord2 = getVariable(words[2],currentRunningProcessMemoryImage);
+                MemoryWord memWord1 = getVariable(words[1],p);
+                MemoryWord memWord2 = getVariable(words[2],p);
                 if ( isInteger( (String) memWord1.getVariableData() ) && isInteger( (String) memWord2.getVariableData() ) ) {
                     int a = Integer.parseInt((String) memWord1.getVariableData());
                     int b = Integer.parseInt((String) memWord2.getVariableData());
@@ -140,9 +152,9 @@ public class Interpreter {
                 if (words.length != 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, semWait statement requires 1 parameter.");
                 switch (words[1]) {
-                    case "userInput" -> Kernel.getUserInputMutex().semWait(currentRunningProcessMemoryImage);
-                    case "userOutput" -> Kernel.getUserOutputMutex().semWait(currentRunningProcessMemoryImage);
-                    case "file" -> Kernel.getFileMutex().semWait(currentRunningProcessMemoryImage);
+                    case "userInput" -> Kernel.getUserInputMutex().semWait(p);
+                    case "userOutput" -> Kernel.getUserOutputMutex().semWait(p);
+                    case "file" -> Kernel.getFileMutex().semWait(p);
                     default -> throw new InvalidInstructionException("Invalid resource name: must be userInput, userOutput or file");
                 }
             }
@@ -151,9 +163,9 @@ public class Interpreter {
                 if (words.length != 2)
                     throw new InvalidInstructionException("Invalid instruction syntax, semWait statement requires 1 parameter.");
                 switch (words[1]) {
-                    case "userInput" -> Kernel.getUserInputMutex().semSignal(currentRunningProcessMemoryImage);
-                    case "userOutput" -> Kernel.getUserOutputMutex().semSignal(currentRunningProcessMemoryImage);
-                    case "file" -> Kernel.getFileMutex().semSignal(currentRunningProcessMemoryImage);
+                    case "userInput" -> Kernel.getUserInputMutex().semSignal(p);
+                    case "userOutput" -> Kernel.getUserOutputMutex().semSignal(p);
+                    case "file" -> Kernel.getFileMutex().semSignal(p);
                     default -> throw new InvalidInstructionException("Invalid resource name: must be userInput, userOutput or file");
                 }
             }

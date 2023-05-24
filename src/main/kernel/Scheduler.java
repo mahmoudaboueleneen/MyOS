@@ -23,7 +23,7 @@ public class Scheduler {
     private final List<Integer> scheduledArrivalTimes;
     private final List<String> scheduledArrivalFileLocations;
     private boolean firstArrivalsHandled;
-    private static List<String[]> executedInnerInstructions;
+    private static List<Object[]> executedInnerInstructions;
     //private static ArrayList<Integer> burstTimesList;
 
     public Scheduler(int instructionsPerTimeSlice, List<Integer> scheduledArrivalTimes, List<String> scheduledArrivalFileLocations){
@@ -62,8 +62,8 @@ public class Scheduler {
             if (runningPMI.hasNextInstruction()) {
                 String instruction = Kernel.getInterpreter().getNextProcessInstruction(runningPMI);
 
-                if ( hasNestedInstruction(instruction) && !isInnerInstructionAlreadyExecuted(instruction) ){
-                    executeInnerInstruction(instruction);
+                if ( hasNestedInstruction(instruction) && !isInnerInstructionAlreadyExecuted(instruction, runningPMI.getPCB().getProcessID()) ){
+                    executeInnerInstruction(instruction, runningPMI.getPCB().getProcessID());
                 } else {
                     runningPMI.incrementPC();
                     executeInstruction(instruction);
@@ -202,22 +202,23 @@ public class Scheduler {
         return null;
     }
 
-    private synchronized static boolean isInnerInstructionAlreadyExecuted(String instruction){
-        for(String[] pair : executedInnerInstructions){
-            if(pair[0].equals(instruction) && pair[1].equals( getInnerInstruction(instruction) ))
+    private synchronized static boolean isInnerInstructionAlreadyExecuted(String instruction, int processID){
+        for(Object[] each : executedInnerInstructions){
+            if(each[0].equals(processID) && each[1].equals(instruction) && each[2].equals( getInnerInstruction(instruction) ))
                 return true;
         }
         return false;
     }
 
-    private void executeInnerInstruction(String instruction){
+    private void executeInnerInstruction(String instruction, int processID){
         String innerInstruction = getInnerInstruction(instruction);
         executeInstruction(innerInstruction);
 
-        String[] instrAndInnerInstrPair = new String[2];
-        instrAndInnerInstrPair[0] = instruction;
-        instrAndInnerInstrPair[1] = innerInstruction;
-        executedInnerInstructions.add(instrAndInnerInstrPair);
+        Object[] executedInnerInstr = new Object[3];
+        executedInnerInstr[0] = processID;
+        executedInnerInstr[1] = instruction;
+        executedInnerInstr[2] = innerInstruction;
+        executedInnerInstructions.add(executedInnerInstr);
     }
 
     private void executeInstruction(String instruction){
