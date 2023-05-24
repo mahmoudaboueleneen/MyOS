@@ -1,3 +1,5 @@
 # MyOS
 
-This project attempts to simulate a real operating system.
+MyOS is our valiant effort to create a simulation of an Operating System entirely from scratch. It applies concepts of Operating Systems like Memory Management, Disk Management, Process creation, scheduling, and management,  scheduling algorithms (i.e. round robin time slicing which we implemented in our case), multi-threading, Mutual Inclusion (Mutex) synchronization, and interpreters. 
+
+As part of the implementation, we have created our very own Interpreter for instructions of a simple programming language that we have defined. Our programs arrive in the form of program files containing instructions in the aforementioned language's syntax. The result is the Kernel creating processes for the programs, and these processes produce outputs, initialize variables and store them in their allocated memory space in our own implemented Memory data structure, do all sorts of things with their stored data, read data from files on disk, as well as perform other System Calls that we have programmed, and many other interactions as well.
