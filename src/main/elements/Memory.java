@@ -39,10 +39,10 @@ public class Memory {
         int i = 0;
         for(ProcessMemoryImage p : Scheduler.getInMemoryProcessMemoryImages()){
             p.setLowerMemoryBoundary(i);
-            p.setUpperMemoryBoundary(i + Kernel.getPCBSize() + Kernel.getDataSize() + p.getInstructions().length);
+            p.setUpperMemoryBoundary(i + Kernel.getPCBSize() + Kernel.getDataSize() + p.getInstructions().length - 1);
             fillMemoryPartitionWithProcess(p);
 
-            i++;
+            i = i + Kernel.getPCBSize() + Kernel.getDataSize() + p.getInstructions().length;
         }
     }
 

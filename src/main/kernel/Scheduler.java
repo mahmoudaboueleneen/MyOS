@@ -97,6 +97,7 @@ public class Scheduler {
 
     private void finishCurrentRunningProcess(){
         currentRunningProcessMemoryImage.setProcessState(ProcessState.FINISHED);
+        processList.remove(currentRunningProcessMemoryImage); //frees up its PID for use when PID counter starts from 0 again.
         readyQueue.remove(currentRunningProcessMemoryImage);
         blockedQueue.remove(currentRunningProcessMemoryImage);
         System.out.println("PROCESS FINISHED: " + currentRunningProcessMemoryImage);
