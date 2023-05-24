@@ -1,5 +1,8 @@
-package main.elements;
+package main.translators;
 
+import main.elements.Memory;
+import main.elements.MemoryWord;
+import main.elements.ProcessMemoryImage;
 import main.exceptions.VariableAssignmentException;
 import main.kernel.Kernel;
 import main.exceptions.InvalidInstructionException;

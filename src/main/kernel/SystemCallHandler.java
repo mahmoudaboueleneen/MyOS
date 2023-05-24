@@ -13,7 +13,7 @@ public abstract class SystemCallHandler {
     public static String readDataFromFileOnDisk(String fileName){
         StringBuilder sb = new StringBuilder();
         try {
-            File myObj = new File("src/generated_files/" + fileName);
+            File myObj = new File("src/disk/disk.generated_files/" + fileName);
             Scanner myReader = new Scanner(myObj);
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
@@ -21,36 +21,41 @@ public abstract class SystemCallHandler {
             }
             myReader.close();
         } catch (FileNotFoundException e) {
-            System.out.println("Error: Reading from file failed, file not found.");
+            System.out.println("ERROR: Reading from file failed, file not found.");
             //e.printStackTrace();
         }
         return sb.toString();
     }
 
+
     public static void writeDataToFileOnDisk(String fileName, String data){
         try {
-            FileWriter myWriter = new FileWriter("src/generated_files/" + fileName);
+            FileWriter myWriter = new FileWriter("src/disk/disk.generated_files/" + fileName);
             myWriter.write(data);
             myWriter.close();
-            System.out.println("Generated file src/generated_files/" + fileName);
+            System.out.println("Generated file under src/disk/disk.generated_files/" + fileName);
         } catch (IOException e) {
-            System.out.println("An error occurred.");
+            System.out.println("ERROR: An error occurred, writing to file failed.");
             e.printStackTrace();
         }
     }
 
+
     public static void printToScreen(String data){
         System.out.println(data);
     }
+
 
     public static String takeInputFromUser(){
         Scanner sc = new Scanner(System.in);
         return sc.nextLine();
     }
 
+
     public static MemoryWord readDataFromMemory(int address){
         return Memory.getMemoryArray()[address];
     }
+
 
     public static void writeDataToMemory(int address, MemoryWord word){
         Memory.writeMemoryWord(address, word);

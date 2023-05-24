@@ -1,6 +1,7 @@
 package main.kernel;
 
 import main.elements.*;
+import main.translators.Interpreter;
 
 import java.util.ArrayList;
 import java.util.InputMismatchException;
@@ -77,9 +78,9 @@ public abstract class Kernel {
 
 
     private static void addDefaultArrivalFileLocations(){
-        scheduledArrivalFileLocations.add("src/program_files/Program_1.txt");
-        scheduledArrivalFileLocations.add("src/program_files/Program_2.txt");
-        scheduledArrivalFileLocations.add("src/program_files/Program_3.txt");
+        scheduledArrivalFileLocations.add("src/disk/disk.program_files/Program_1.txt");
+        scheduledArrivalFileLocations.add("src/disk/disk.program_files/Program_2.txt");
+        scheduledArrivalFileLocations.add("src/disk/disk.program_files/Program_3.txt");
     }
 
 
