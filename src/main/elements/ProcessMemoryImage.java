@@ -22,15 +22,15 @@ public class ProcessMemoryImage implements Serializable {
             }
     }
 
-    public synchronized ProcessControlBlock getPCB() {
+    public ProcessControlBlock getPCB() {
         return processControlBlock;
     }
 
-    public synchronized MemoryWord[] getVariables() {
+    public MemoryWord[] getVariables() {
         return variables;
     }
 
-    public synchronized String[] getInstructions() {
+    public String[] getInstructions() {
         return instructions;
     }
 
@@ -66,11 +66,11 @@ public class ProcessMemoryImage implements Serializable {
                 "}";
     }
 
-    public synchronized int getProcessMemorySize(){
+    public int getProcessMemorySize(){
         return Kernel.getPCBSize()+ Kernel.getDataSize() + this.instructions.length;
     }
 
-    public synchronized boolean canFitInMemory(){
+    public boolean canFitInMemory(){
         boolean canFitInMemory = false;
         int lowerBound = 0;
         int processMemorySize = this.getProcessMemorySize();
@@ -88,7 +88,7 @@ public class ProcessMemoryImage implements Serializable {
         return canFitInMemory;
     }
 
-    public synchronized int[] getNewPossibleMemoryBounds(){
+    public int[] getNewPossibleMemoryBounds(){
         boolean canFitInMemory = false;
         int lowerBound = 0;
         int upperBound = 0;
@@ -111,7 +111,7 @@ public class ProcessMemoryImage implements Serializable {
         return null; // shouldn't be reached
     }
 
-    public synchronized void setProcessState(ProcessState processState) {
+    public void setProcessState(ProcessState processState) {
         this.getPCB().setProcessState(processState);
 
         MemoryWord word = Memory.getMemoryWordByName("PROCESS_STATE", this.getPCB().getProcessID());
@@ -120,7 +120,7 @@ public class ProcessMemoryImage implements Serializable {
         word.setVariableData(processState);
     }
 
-    public synchronized void setLowerMemoryBoundary(int newLowerBound) {
+    public void setLowerMemoryBoundary(int newLowerBound) {
         this.getPCB().setLowerMemoryBoundary(newLowerBound);
 
         MemoryWord word = Memory.getMemoryWordByName("LOWER_MEM_BOUND", this.getPCB().getProcessID());
@@ -129,7 +129,7 @@ public class ProcessMemoryImage implements Serializable {
         word.setVariableData(newLowerBound);
     }
 
-    public synchronized void setUpperMemoryBoundary(int newUpperBound) {
+    public void setUpperMemoryBoundary(int newUpperBound) {
         this.getPCB().setUpperMemoryBoundary(newUpperBound);
 
         MemoryWord word = Memory.getMemoryWordByName("UPPER_MEM_BOUND", this.getPCB().getProcessID());
@@ -138,7 +138,7 @@ public class ProcessMemoryImage implements Serializable {
         word.setVariableData(newUpperBound);
     }
 
-    public synchronized void setTempLocation(String newTempLocation) {
+    public void setTempLocation(String newTempLocation) {
         this.getPCB().setTempLocation(newTempLocation);
 
         MemoryWord word = Memory.getMemoryWordByName("TEMP_LOCATION", this.getPCB().getProcessID());

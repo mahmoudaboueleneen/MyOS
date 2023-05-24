@@ -10,23 +10,19 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
-import java.util.List;
 
 public class Interpreter {
     private static String[] inputReturnedContents;
     private static String[] readFileReturnedContents;
 
     public Interpreter(){
-        // One cell for each process, holds return value of 'input' instruction
+        // One cell for each process, holds return value of 'input'/'readFile' instruction
         // PID 0 gets cell 0, PID 1 gets cell 1, PID 2 gets cell 2.
         inputReturnedContents = new String[3];
-
-        // One cell for each process, holds return value of 'readFile' instruction
-        // PID 0 gets cell 0, PID 1 gets cell 1, PID 2 gets cell 2.
         readFileReturnedContents = new String[3];
     }
 
-    public synchronized String[] getInstructionsFromFile(String filePath){
+    public static String[] getInstructionsFromFile(String filePath){
         ArrayList<String> res = new ArrayList<>();
         try {
             File fileObj = new File(filePath);
@@ -44,7 +40,7 @@ public class Interpreter {
         return res.toArray(new String[0]);
     }
 
-    public static synchronized int countFileLinesOfCode(String filePath){
+    public static int countFileLinesOfCode(String filePath){
         int linesOfCode = 0;
         try {
             File fileObj = new File(filePath);
@@ -62,13 +58,13 @@ public class Interpreter {
         return linesOfCode;
     }
 
-    public synchronized String getNextProcessInstruction(ProcessMemoryImage p){
+    public static String getNextProcessInstruction(ProcessMemoryImage p){
         int base = p.getPCB().getLowerMemoryBoundary() + 9;
         int offset = p.getPCB().getProgramCounter();
         return (String) Memory.readMemoryWord(base+offset).getVariableData();
     }
 
-    public static synchronized void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException, VariableAssignmentException {
+    public static void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException, VariableAssignmentException {
         System.out.println("INSTRUCTION TO BE EXECUTED: '" + instruction + "'\n");
         interpret(instruction,currentRunningProcessMemoryImage);
         System.out.println("Instruction successfully executed!\n");
@@ -79,7 +75,7 @@ public class Interpreter {
     }
 
     //TODO: Change words[n] to nthWord.
-    public static synchronized void interpret(String instruction, ProcessMemoryImage p) throws InvalidInstructionException, VariableAssignmentException {
+    public static void interpret(String instruction, ProcessMemoryImage p) throws InvalidInstructionException, VariableAssignmentException {
         String[] words = instruction.split(" ");
         String firstWord = words[0];
 
@@ -104,7 +100,7 @@ public class Interpreter {
                 else if (words[2].equals("readFile")) {
                     if(words.length != 4)
                         throw new InvalidInstructionException("Invalid instruction syntax, readFile statement requires 1 parameter.");
-                    Memory.initializeVariableInMemory(words[1], inputReturnedContents[p.getPCB().getProcessID()], p);
+                    Memory.initializeVariableInMemory(words[1], readFileReturnedContents[p.getPCB().getProcessID()], p);
                 }
                 else
                     Memory.initializeVariableInMemory(words[1], words[2], p);

@@ -8,13 +8,14 @@ import main.kernel.SystemCallHandler;
 public class Memory {
     private static MemoryWord[] memoryArray;
     private static boolean[] reservedArray;
+    private final int MEMORY_SIZE = 40;
 
     public Memory(){
-        memoryArray = new MemoryWord[40];
-        reservedArray = new boolean[40];
+        memoryArray = new MemoryWord[MEMORY_SIZE];
+        reservedArray = new boolean[MEMORY_SIZE];
     }
 
-    public static synchronized void compactMemory(){
+    public static void compactMemory(){
         clearMemory();
         fillMemoryWithProcessesWhichShouldBeInIt();
     }
@@ -23,13 +24,13 @@ public class Memory {
         clearMemoryPartition(0,39);
     }
 
-    public static synchronized void clearMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
+    public static void clearMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound+1; i++){
             clearMemoryWord(i);
         }
     }
 
-    public static synchronized void clearMemoryWord(int address){
+    public static void clearMemoryWord(int address){
         memoryArray[address] = null;
         reservedArray[address] = false;
     }
@@ -45,13 +46,13 @@ public class Memory {
         }
     }
 
-    public static synchronized void fillMemoryPartitionWithProcess(ProcessMemoryImage p) {
+    public static void fillMemoryPartitionWithProcess(ProcessMemoryImage p) {
         fillPCBMemorySpace(p);
         fillDataMemorySpace(p);
         fillInstructionsMemorySpace(p);
     }
 
-    private static synchronized void fillPCBMemorySpace(ProcessMemoryImage p){
+    private static void fillPCBMemorySpace(ProcessMemoryImage p){
         int i = p.getPCB().getLowerMemoryBoundary();
         writeMemoryWord(i, new MemoryWord("PROCESS_ID", p.getPCB().getProcessID()) );
         writeMemoryWord(i+1, new MemoryWord("PROCESS_STATE", p.getPCB().getProcessState()) );
@@ -61,7 +62,7 @@ public class Memory {
         writeMemoryWord(i+5, new MemoryWord("TEMP_LOCATION", p.getPCB().getTempLocation()==null?"---":p.getPCB().getTempLocation()) );
     }
 
-    private static synchronized void fillDataMemorySpace(ProcessMemoryImage p){
+    private static void fillDataMemorySpace(ProcessMemoryImage p){
         int i = p.getPCB().getLowerMemoryBoundary() + Kernel.getPCBSize();
         for(MemoryWord var : p.getVariables()){
             if(var == null) writeMemoryWord(i, new MemoryWord("---", "---"));
@@ -70,7 +71,7 @@ public class Memory {
         }
     }
 
-    private static synchronized void fillInstructionsMemorySpace(ProcessMemoryImage p){
+    private static void fillInstructionsMemorySpace(ProcessMemoryImage p){
         int i = p.getPCB().getLowerMemoryBoundary() + Kernel.getPCBSize() + Kernel.getDataSize();
         for(String instruction : p.getInstructions()){
             writeMemoryWord(i, new MemoryWord("INSTRUCTION", instruction));
@@ -78,14 +79,15 @@ public class Memory {
         }
     }
 
-    public static synchronized void writeMemoryWord(int address, MemoryWord word) {
+    public static void writeMemoryWord(int address, MemoryWord word) {
         memoryArray[address] = word;
         reservedArray[address] = true;
     }
 
-    public static synchronized MemoryWord readMemoryWord(int address) {
+    public static MemoryWord readMemoryWord(int address) {
         return memoryArray[address];
     }
+
 
     /*
      * Used primarily when first creating a process
@@ -93,28 +95,28 @@ public class Memory {
      * reserved, until the process's data is moved
      * to this partition.
      */
-    public static synchronized void allocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
+    public static void allocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound+1; i++){
             allocateMemoryWord(i);
         }
     }
 
-    public static synchronized void allocateMemoryWord(int address){
+    public static void allocateMemoryWord(int address){
         reservedArray[address] = true;
     }
 
-    public static synchronized void deallocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
+    public static void deallocateMemoryPartition(int lowerMemoryBound, int upperMemoryBound){
         for (int i = lowerMemoryBound; i < upperMemoryBound+1; i++){
             deallocateMemoryWord(i);
         }
     }
 
-    public static synchronized void deallocateMemoryWord(int address){
+    public static void deallocateMemoryWord(int address){
         reservedArray[address] = false;
     }
 
     @Override
-    public synchronized String toString () {
+    public String toString () {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < memoryArray.length; i++) {
             String varName;
@@ -152,11 +154,11 @@ public class Memory {
         return reservedArray;
     }
 
-    public synchronized static boolean isMemoryWordOccupied(int address) {
+    public static boolean isMemoryWordOccupied(int address) {
         return reservedArray[address];
     }
 
-    public synchronized static MemoryWord getMemoryWordByName(String givenVariableName, int processID){
+    public static MemoryWord getMemoryWordByName(String givenVariableName, int processID){
         // Search memory for process with given processID
         for (int i = 0; i < memoryArray.length; i++){
             if ( isIndexAtTheGivenProcessID(i, processID) ) {
@@ -174,7 +176,7 @@ public class Memory {
         return null;
     }
 
-    public synchronized static void setMemoryWordValue(String varName, String varData, ProcessMemoryImage p) {
+    public static void setMemoryWordValue(String varName, String varData, ProcessMemoryImage p) {
         int processID = p.getPCB().getProcessID();
 
         // Search memory for process with given processID
@@ -195,7 +197,7 @@ public class Memory {
         }
     }
 
-    public synchronized static void initializeVariableInMemory(String varName, String varData, ProcessMemoryImage p) throws VariableAssignmentException {
+    public static void initializeVariableInMemory(String varName, String varData, ProcessMemoryImage p) throws VariableAssignmentException {
         int processID = p.getPCB().getProcessID();
 
         // Search memory for process with given processID

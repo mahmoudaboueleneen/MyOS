@@ -9,11 +9,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class SystemCallHandler {
+public abstract class SystemCallHandler {
 
-    public SystemCallHandler(){}
-
-    public synchronized static String readDataFromFileOnDisk(String fileName){
+    public static String readDataFromFileOnDisk(String fileName){
         StringBuilder sb = new StringBuilder();
         try {
             File myObj = new File("src/generated_files/" + fileName);
@@ -25,12 +23,12 @@ public class SystemCallHandler {
             myReader.close();
         } catch (FileNotFoundException e) {
             System.out.println("Error: Reading from file failed, file not found.");
-            e.printStackTrace();
+            //e.printStackTrace();
         }
         return sb.toString();
     }
 
-    public synchronized static void writeDataToFileOnDisk(String fileName, String data){
+    public static void writeDataToFileOnDisk(String fileName, String data){
         try {
             FileWriter myWriter = new FileWriter("src/generated_files/" + fileName);
             myWriter.write(data);
@@ -42,20 +40,21 @@ public class SystemCallHandler {
         }
     }
 
-    public synchronized static void printToScreen(String data){
+    public static void printToScreen(String data){
         System.out.println(data);
+        System.out.println();
     }
 
-    public synchronized static String takeInputFromUser(){
+    public static String takeInputFromUser(){
         Scanner sc = new Scanner(System.in);
         return sc.nextLine();
     }
 
-    public synchronized static MemoryWord readDataFromMemory(int address){
+    public static MemoryWord readDataFromMemory(int address){
         return Memory.getMemoryArray()[address];
     }
 
-    public synchronized static void writeDataToMemory(int address, MemoryWord word){
+    public static void writeDataToMemory(int address, MemoryWord word){
         Memory.writeMemoryWord(address, word);
     }
 

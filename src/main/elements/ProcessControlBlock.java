@@ -18,47 +18,47 @@ public class ProcessControlBlock implements Serializable {
             this.upperMemoryBoundary = upperMemoryBoundary;
         }
 
-        public synchronized int getProcessID() {
+        public int getProcessID() {
             return processID;
         }
 
-        public synchronized ProcessState getProcessState() {
+        public ProcessState getProcessState() {
             return processState;
         }
 
-        public synchronized void setProcessState(ProcessState processState) {
+        public void setProcessState(ProcessState processState) {
             this.processState = processState;
         }
 
-        public synchronized int getProgramCounter() {
+        public int getProgramCounter() {
             return programCounter;
         }
 
-        public synchronized void setProgramCounter(int programCounter) {
+        public void setProgramCounter(int programCounter) {
             this.programCounter = programCounter;
         }
 
-        public synchronized int getLowerMemoryBoundary() {
+        public int getLowerMemoryBoundary() {
             return lowerMemoryBoundary;
         }
 
-        public synchronized void setLowerMemoryBoundary(int lowerMemoryBoundary) {
+        public void setLowerMemoryBoundary(int lowerMemoryBoundary) {
             this.lowerMemoryBoundary = lowerMemoryBoundary;
         }
 
-        public synchronized int getUpperMemoryBoundary() {
+        public int getUpperMemoryBoundary() {
             return upperMemoryBoundary;
         }
 
-        public synchronized void setUpperMemoryBoundary(int upperMemoryBoundary) {
+        public void setUpperMemoryBoundary(int upperMemoryBoundary) {
             this.upperMemoryBoundary = upperMemoryBoundary;
         }
 
-        public synchronized String getTempLocation() {
+        public String getTempLocation() {
             return tempLocation;
         }
 
-        public synchronized void setTempLocation(String tempLocation) {
+        public void setTempLocation(String tempLocation) {
             this.tempLocation = tempLocation;
         }
 }

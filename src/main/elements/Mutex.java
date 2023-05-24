@@ -22,17 +22,14 @@ public class Mutex {
         this.ownerID = -1;
     }
 
-    /**
-     * Attempt to acquire resource.
-     */
     public synchronized void semWait(ProcessMemoryImage p){
         if (this.value == MutexValue.ONE) {
-//          Acquire resource
+            // Acquire resource
             this.ownerID = p.getPCB().getProcessID();
             this.value = MutexValue.ZERO;
         }
         else {
-//          Block process
+            // Block process
             this.blockedQueue.add(p);
             p.setProcessState(ProcessState.BLOCKED);
             Scheduler.getBlockedQueue().add(p);
@@ -42,22 +39,19 @@ public class Mutex {
 
     }
 
-    /**
-     * Attempt to release resource.
-      */
     public synchronized void semSignal(ProcessMemoryImage p){
         if(this.ownerID == p.getPCB().getProcessID()) {
             if (this.blockedQueue.isEmpty()) {
-//              Release resource
+                // Release resource
                 this.value = MutexValue.ONE;
             }
             else {
-//              Unblock a process
+                // Unblock a process
                 ProcessMemoryImage releasedPMI = this.blockedQueue.remove();
                 Scheduler.getBlockedQueue().remove(releasedPMI);
                 Scheduler.getReadyQueue().add(releasedPMI);
                 releasedPMI.setProcessState(ProcessState.READY);
-//              Reassign the resource to the newly unblocked process
+                // Reassign the resource to the newly unblocked process
                 this.ownerID = releasedPMI.getPCB().getProcessID();
             }
         }

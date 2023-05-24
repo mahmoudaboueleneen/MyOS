@@ -7,16 +7,14 @@ import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
-public class Kernel {
+public abstract class Kernel {
     // Mutexes for the three available resources.
     private static Mutex userInputMutex;
     private static Mutex userOutputMutex;
     private static Mutex fileMutex;
     // Instances of the main classes
-    private static Interpreter interpreter;
     private static Scheduler scheduler;
     private static Memory memory;
-    private static SystemCallHandler systemCallHandler;
     // Fields to handle process arrivals
     private static int instructionsPerTimeSlice;
     private static List<Integer> scheduledArrivalTimes;
@@ -26,27 +24,22 @@ public class Kernel {
     private static final int DATA_SIZE = 3;
 
 
-    public Kernel(int instructionsPerTimeSlice){
-        userInputMutex = new Mutex();
-        userOutputMutex = new Mutex();
-        fileMutex = new Mutex();
-        interpreter = new Interpreter();
-        scheduler = new Scheduler(instructionsPerTimeSlice, scheduledArrivalTimes, scheduledArrivalFileLocations);
-        memory = new Memory();
-        systemCallHandler = new SystemCallHandler();
-    }
-
     public static void initDefaultConditions(){
         scheduledArrivalTimes = new ArrayList<>();
         scheduledArrivalTimes.add(0);
         scheduledArrivalTimes.add(1);
         scheduledArrivalTimes.add(4);
-
         scheduledArrivalFileLocations = new ArrayList<>();
         scheduledArrivalFileLocations.add("src/program_files/Program_1.txt");
         scheduledArrivalFileLocations.add("src/program_files/Program_2.txt");
         scheduledArrivalFileLocations.add("src/program_files/Program_3.txt");
-        new Kernel(2);
+
+        userInputMutex = new Mutex();
+        userOutputMutex = new Mutex();
+        fileMutex = new Mutex();
+        new Interpreter();
+        scheduler = new Scheduler(2, scheduledArrivalTimes, scheduledArrivalFileLocations);
+        memory = new Memory();
 
         System.out.println("Inputs received, initializing...");
 
@@ -62,7 +55,13 @@ public class Kernel {
         scheduledArrivalFileLocations.add("src/program_files/Program_3.txt");
         inputInstructionsPerTimeSlice();
         inputArrivalTimes();
-        new Kernel(instructionsPerTimeSlice);
+
+        userInputMutex = new Mutex();
+        userOutputMutex = new Mutex();
+        fileMutex = new Mutex();
+        new Interpreter();
+        scheduler = new Scheduler(instructionsPerTimeSlice, scheduledArrivalTimes, scheduledArrivalFileLocations);
+        memory = new Memory();
 
         System.out.println("Inputs received, initializing...");
 
@@ -127,8 +126,8 @@ public class Kernel {
         return found;
     }
 
-    public static synchronized void createNewProcess(String programFilePath) {
-        ProcessMemoryImage p = new ProcessMemoryImage( Kernel.getInterpreter().getInstructionsFromFile(programFilePath) );
+    public static void createNewProcess(String programFilePath) {
+        ProcessMemoryImage p = new ProcessMemoryImage( Interpreter.getInstructionsFromFile(programFilePath) );
         while(!p.canFitInMemory()){
             Scheduler.swapOutToDisk( Scheduler.getProcessToSwapOutToDisk());
             Memory.compactMemory();
@@ -151,7 +150,6 @@ public class Kernel {
         p.setProcessControlBlock(pcb);
         Scheduler.addArrivedProcess(p);
         Kernel.getScheduler().addToReadyQueue(p);
-        //Kernel.getScheduler().addBurstTime( (Integer) canFitWhereInMemory[3] );
 
         //System.out.println("    Finalizing process creation...");
         Memory.fillMemoryPartitionWithProcess(p);
@@ -172,20 +170,12 @@ public class Kernel {
         return fileMutex;
     }
 
-    public static Interpreter getInterpreter() {
-        return interpreter;
-    }
-
     public static Scheduler getScheduler() {
         return scheduler;
     }
 
     public static Memory getMemory() {
         return memory;
-    }
-
-    public static SystemCallHandler getSystemCallHandler() {
-        return systemCallHandler;
     }
 
     public static int getPCBSize(){
