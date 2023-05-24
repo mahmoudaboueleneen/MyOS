@@ -2,7 +2,6 @@ package main.kernel;
 
 import main.elements.Memory;
 import main.elements.MemoryWord;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -42,7 +41,6 @@ public abstract class SystemCallHandler {
 
     public static void printToScreen(String data){
         System.out.println(data);
-        System.out.println();
     }
 
     public static String takeInputFromUser(){

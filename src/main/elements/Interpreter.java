@@ -5,57 +5,23 @@ import main.kernel.Kernel;
 import main.exceptions.InvalidInstructionException;
 import main.kernel.Scheduler;
 import main.kernel.SystemCallHandler;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Interpreter {
+    /*
+     * Each of these arrays has one cell for each process,
+     * holds return value of last executed 'input'/'readFile'
+     * instruction.
+     */
     private static String[] inputReturnedContents;
     private static String[] readFileReturnedContents;
 
     public Interpreter(){
-        // One cell for each process, holds return value of 'input'/'readFile' instruction
-        // PID 0 gets cell 0, PID 1 gets cell 1, PID 2 gets cell 2.
         inputReturnedContents = new String[3];
         readFileReturnedContents = new String[3];
-    }
-
-    public static String[] getInstructionsFromFile(String filePath){
-        ArrayList<String> res = new ArrayList<>();
-        try {
-            File fileObj = new File(filePath);
-            Scanner myReader = new Scanner(fileObj);
-            while (myReader.hasNextLine()) {
-                String data = myReader.nextLine();
-                res.add(data);
-            }
-            myReader.close();
-        }
-        catch (FileNotFoundException e) {
-            System.out.println("Error: File not found, exiting.");
-            e.printStackTrace();
-        }
-        return res.toArray(new String[0]);
-    }
-
-    public static int countFileLinesOfCode(String filePath){
-        int linesOfCode = 0;
-        try {
-            File fileObj = new File(filePath);
-            Scanner myReader = new Scanner(fileObj);
-            while (myReader.hasNextLine()) {
-                myReader.nextLine();
-                linesOfCode++;
-            }
-            myReader.close();
-        }
-        catch (FileNotFoundException e) {
-            System.out.println("Error: File not found, exiting.");
-            e.printStackTrace();
-        }
-        return linesOfCode;
     }
 
     public static String getNextProcessInstruction(ProcessMemoryImage p){
@@ -67,11 +33,13 @@ public class Interpreter {
     public static void interpretAndIncrementInstructionCycle(String instruction, ProcessMemoryImage currentRunningProcessMemoryImage) throws InvalidInstructionException, VariableAssignmentException {
         System.out.println("INSTRUCTION TO BE EXECUTED: '" + instruction + "'\n");
         interpret(instruction,currentRunningProcessMemoryImage);
-        System.out.println("Instruction successfully executed!\n");
-        System.out.println("MEMORY AFTER EXECUTING INSTR.:");
+        System.out.println("Instruction interpreted.\n");
+
+        System.out.println("MEMORY AFTER INTERPRETING & EXECUTING INSTR.:");
         System.out.println(Kernel.getMemory());
         System.out.println("Incrementing instruction cycle...");
-        Scheduler.incrementInstructionCycleAndPrintMemory();
+
+        Scheduler.incrementInstructionCycle();
     }
 
     //TODO: Change words[n] to nthWord.
@@ -181,6 +149,42 @@ public class Interpreter {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    public static String[] getInstructionsFromFile(String filePath){
+        ArrayList<String> res = new ArrayList<>();
+        try {
+            File fileObj = new File(filePath);
+            Scanner myReader = new Scanner(fileObj);
+            while (myReader.hasNextLine()) {
+                String data = myReader.nextLine();
+                res.add(data);
+            }
+            myReader.close();
+        }
+        catch (FileNotFoundException e) {
+            System.out.println("Error: File not found, exiting.");
+            e.printStackTrace();
+        }
+        return res.toArray(new String[0]);
+    }
+
+    public static int countFileLinesOfCode(String filePath){
+        int linesOfCode = 0;
+        try {
+            File fileObj = new File(filePath);
+            Scanner myReader = new Scanner(fileObj);
+            while (myReader.hasNextLine()) {
+                myReader.nextLine();
+                linesOfCode++;
+            }
+            myReader.close();
+        }
+        catch (FileNotFoundException e) {
+            System.out.println("Error: File not found, exiting.");
+            e.printStackTrace();
+        }
+        return linesOfCode;
     }
 
 }

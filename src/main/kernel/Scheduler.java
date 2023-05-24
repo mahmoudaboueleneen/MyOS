@@ -41,46 +41,45 @@ public class Scheduler {
 
         if(!firstArrivalsHandled)
             checkAndHandleFirstProcessArrivals();
-
         if(readyQueue.isEmpty())
             finalizeProgram();
 
         ProcessMemoryImage nextInLine = readyQueue.element();
-
         if (!inMemoryProcessMemoryImages.contains(nextInLine))
             moveProcessToMemory(nextInLine);
 
         assignNewRunningProcess();
         ProcessMemoryImage runningPMI = currentRunningProcessMemoryImage;
+        int processID = currentRunningProcessMemoryImage.getPCB().getProcessID();
 
         while(instrsLeftInTimeSlice > 0) {
             printCurrentRunningProcess();
-
-            if (runningPMI.hasNextInstruction()) {
+            if (runningPMI.hasNextInstruction())
+            {
                 String instruction = Interpreter.getNextProcessInstruction(runningPMI);
-
-                if ( hasNestedInstruction(instruction) && !isInnerInstructionAlreadyExecuted(instruction, runningPMI.getPCB().getProcessID()) ){
-                    executeInnerInstruction(instruction, runningPMI.getPCB().getProcessID());
-                } else {
+                if ( hasNestedInstruction(instruction)
+                     && !isInnerInstructionAlreadyExecuted(instruction, processID) )
+                    executeInnerInstruction(instruction, processID);
+                else {
                     runningPMI.incrementPC();
                     executeInstruction(instruction);
                 }
                 instrsLeftInTimeSlice--;
                 checkAndHandleProcessArrivals();
-                if (runningPMI.getPCB().getProcessState() == ProcessState.BLOCKED)
-                    return;
-            } else {
+
+                ProcessState state = runningPMI.getPCB().getProcessState();
+                if (state == ProcessState.BLOCKED)
+                    return; // end time slice
+            }
+            else {
                 finishCurrentRunningProcess();
                 return;
             }
-
         }
-
         if(runningPMI.hasNextInstruction())
             preemptCurrentRunningProcess();
         else
             finishCurrentRunningProcess();
-
         currentRunningProcessMemoryImage = null;
     }
 
@@ -192,9 +191,9 @@ public class Scheduler {
         String[] words = fullInstruction.split(" ");
 
         if(words[0].equals("assign") && words[2].equals("readFile"))
-            return words[2] + " " + words[3];   // "readFile b"
+            return words[2] + " " + words[3];                            // e.g. 'readFile b'
         else if (words[0].equals("assign") && words[2].equals("input"))
-            return words[2];    // input
+            return words[2];                                             // e.g. 'input'
 
         return null;
     }
@@ -233,13 +232,17 @@ public class Scheduler {
     }
 
     private void checkAndHandleProcessArrivals(){
-        System.out.println("\n**************************************************************************************************************************");
-        System.out.println("CURRENT INSTRUCTION CYCLE = " + instructionCycle + " instruction(s) executed:\n");
         if(instructionCycle == 0){
             System.out.println("MEMORY STARTING STATE:");
             System.out.println(Kernel.getMemory());
         }
 
+        System.out.println("\n*******************************************************" +
+                 "*******************************************************************");
+
+        System.out.println("CURRENT INSTRUCTION CYCLE = " + instructionCycle + " instruction(s) executed:\n");
+
+        // Create arrived processes and remove them from scheduled arrivals afterwards.
         Iterator<Integer> iterator = scheduledArrivalTimes.iterator();
         while(iterator.hasNext()){
             int time = iterator.next();
@@ -251,11 +254,6 @@ public class Scheduler {
                 scheduledArrivalFileLocations.remove(index);
             }
         }
-    }
-
-    private void finalizeProgram(){
-        System.out.println("All processes finished.");
-        System.exit(0);
     }
 
     public static int getNextProcessID() {
@@ -274,8 +272,12 @@ public class Scheduler {
         return maximumUsedPID;
     }
 
-    public static void incrementInstructionCycleAndPrintMemory(){
+    public static void incrementInstructionCycle(){
         instructionCycle++;
+    }
+
+    public static void addArrivedProcess(ProcessMemoryImage p) {
+        processList.add(p);
     }
 
     public void addToReadyQueue(ProcessMemoryImage p) {
@@ -283,6 +285,11 @@ public class Scheduler {
         p.setProcessState(ProcessState.READY);
         System.out.println("PROCESS ADDED TO READY QUEUE: " + p);
         printQueues();
+    }
+
+    private void finalizeProgram(){
+        System.out.println("All processes finished.");
+        Kernel.exitProgram();
     }
 
     public static void printQueues(){
@@ -301,10 +308,6 @@ public class Scheduler {
 
     public void printCurrentRunningProcess(){
         System.out.println("CURRENT RUNNING PROCESS: " + currentRunningProcessMemoryImage.toString());
-    }
-
-    public static void addArrivedProcess(ProcessMemoryImage p) {
-        processList.add(p);
     }
 
     public static ArrayList<ProcessMemoryImage> getInMemoryProcessMemoryImages() {

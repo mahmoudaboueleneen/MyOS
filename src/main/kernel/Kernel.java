@@ -23,7 +23,6 @@ public abstract class Kernel {
     private static final int PCB_SIZE = 6;
     private static final int DATA_SIZE = 3;
 
-
     public static void initDefaultConditions(){
         scheduledArrivalTimes = new ArrayList<>();
         scheduledArrivalTimes.add(0);
@@ -78,15 +77,18 @@ public abstract class Kernel {
             instructionsPerTimeSlice = inp.nextInt();
         } catch (InputMismatchException e) {
             System.out.println("ERROR: Instructions per time slice must be an integer.");
-            System.out.println("Exiting ...");
-            System.exit(0);
+            exitProgram();
         }
 
         if(instructionsPerTimeSlice <= 0){
             System.out.println("ERROR: Instructions per time slice must be greater than zero.");
-            System.out.println("Exiting ...");
-            System.exit(0);
+            exitProgram();
         }
+    }
+
+    public static void exitProgram(){
+        System.out.println("Exiting ...");
+        System.exit(0);
     }
 
     private static void inputArrivalTimes(){
@@ -97,25 +99,22 @@ public abstract class Kernel {
                 scheduledArrivalTimes.add(inp.nextInt());
             } catch (InputMismatchException e) {
                 System.out.println("ERROR: Arrival time must be an integer.");
-                System.out.println("Exiting ...");
-                System.exit(0);
+                exitProgram();
             }
 
             if(scheduledArrivalTimes.get(i)<0){
                 System.out.println("ERROR: Arrival time cannot be negative.");
-                System.out.println("Exiting ...");
-                System.exit(0);
+                exitProgram();
             }
         }
 
-        if(!hasTimeZero()){
+        if(!arrivalTimeArrayHasTimeZero()){
             System.out.println("ERROR: One of the processes MUST arrive at time 0.");
-            System.out.println("Exiting ...");
-            System.exit(0);
+            exitProgram();
         }
     }
 
-    private static boolean hasTimeZero(){
+    private static boolean arrivalTimeArrayHasTimeZero(){
         boolean found = false;
         for(int time : scheduledArrivalTimes){
             if (time == 0){
@@ -132,29 +131,23 @@ public abstract class Kernel {
             Scheduler.swapOutToDisk( Scheduler.getProcessToSwapOutToDisk());
             Memory.compactMemory();
         }
-
         int[] bounds = p.getNewPossibleMemoryBounds();
         int lowerBound = bounds[0];
         int upperBound = bounds[1];
 
         //System.out.println("    Acquiring unique PID...");
         int processID = Scheduler.getNextProcessID();
-
         //System.out.println("    Allocating memory space...");
         Memory.allocateMemoryPartition(lowerBound, upperBound);
-
         //System.out.println("    Initializing PCB...");
         ProcessControlBlock pcb = new ProcessControlBlock(processID, lowerBound, upperBound);
-
         //System.out.println("    Linking to scheduling queue...\n");
         p.setProcessControlBlock(pcb);
         Scheduler.addArrivedProcess(p);
         Kernel.getScheduler().addToReadyQueue(p);
-
         //System.out.println("    Finalizing process creation...");
         Memory.fillMemoryPartitionWithProcess(p);
         Scheduler.getInMemoryProcesses().add(p);
-
         //System.out.println("    Process created successfully!\n");
     }
 
