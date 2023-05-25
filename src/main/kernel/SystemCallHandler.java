@@ -13,7 +13,7 @@ public abstract class SystemCallHandler {
     public static String readDataFromFileOnDisk(String fileName){
         StringBuilder sb = new StringBuilder();
         try {
-            File myObj = new File("src/disk/disk.generated_files/" + fileName);
+            File myObj = new File("src/disk/generated_files/" + fileName);
             Scanner myReader = new Scanner(myObj);
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
@@ -30,10 +30,10 @@ public abstract class SystemCallHandler {
 
     public static void writeDataToFileOnDisk(String fileName, String data){
         try {
-            FileWriter myWriter = new FileWriter("src/disk/disk.generated_files/" + fileName);
+            FileWriter myWriter = new FileWriter("src/disk/generated_files/" + fileName);
             myWriter.write(data);
             myWriter.close();
-            System.out.println("Generated file under src/disk/disk.generated_files/" + fileName);
+            System.out.println("Generated file under src/disk/generated_files/" + fileName);
         } catch (IOException e) {
             System.out.println("ERROR: An error occurred, writing to file failed.");
             e.printStackTrace();

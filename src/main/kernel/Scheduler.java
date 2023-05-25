@@ -208,7 +208,7 @@ public class Scheduler {
 
 
     public static void swapOutToDisk(ProcessMemoryImage p){
-        String location = "src/disk/disk.temp/PID_" + p.getPCB().getProcessID() + ".ser";
+        String location = "src/disk/temp/PID_" + p.getPCB().getProcessID() + ".ser";
         p.setTempLocation(location);
         // -1 denotes that it's not in memory.
         p.setLowerMemoryBoundary(-1);
